@@ -81,11 +81,7 @@
 		}
 	};
 
-	$: if (page) {
-		getFeedbacks();
-	}
-
-	$: if (orderBy && direction) {
+	$: if (orderBy && direction && page) {
 		getFeedbacks();
 	}
 
