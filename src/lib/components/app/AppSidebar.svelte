@@ -1,9 +1,12 @@
 <script lang="ts">
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Plus from '$lib/components/icons/Plus.svelte';
-	import { WEBUI_BASE_URL } from '$lib/constants';
+	import { WEBUI_BASE_URL, PLATFORM } from '$lib/constants';
 
 	let selected = '';
+
+	// Use static path for desktop/Tauri environment
+	const faviconPath = PLATFORM.isDesktop ? '/static/favicon.png' : `${WEBUI_BASE_URL}/static/favicon.png`;
 </script>
 
 <div class="min-w-[4.5rem] bg-gray-50 dark:bg-gray-950 flex gap-2.5 flex-col pt-8">
@@ -26,7 +29,7 @@
 				}}
 			>
 				<img
-					src="{WEBUI_BASE_URL}/static/splash.png"
+					src={PLATFORM.isDesktop ? '/static/splash.png' : `${WEBUI_BASE_URL}/static/splash.png`}
 					class="size-11 dark:invert p-0.5"
 					alt="logo"
 					draggable="false"
@@ -50,7 +53,7 @@
 			}}
 		>
 			<img
-				src="{WEBUI_BASE_URL}/static/favicon.png"
+				src={faviconPath}
 				class="size-10 {selected === '' ? 'rounded-2xl' : 'rounded-full'}"
 				alt="logo"
 				draggable="false"

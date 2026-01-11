@@ -1,0 +1,52 @@
+{
+  "mirrors": [
+    {
+      "id": "aliyun",
+      "name": "阿里云 CDN (中国)",
+      "url": "https://openwebui.oss-cn-hangzhou.aliyuncs.com",
+      "priority": 10,
+      "regions": ["cn"]
+    },
+    {
+      "id": "ghproxy",
+      "name": "GHProxy (中国加速)",
+      "url": "https://ghproxy.com/https://github.com/open-webui/open-webui/releases",
+      "priority": 9,
+      "regions": ["cn"]
+    },
+    {
+      "id": "fastgit",
+      "name": "FastGit",
+      "url": "https://hub.fastgit.xyz/open-webui/open-webui/releases",
+      "priority": 5,
+      "regions": ["global"]
+    },
+    {
+      "id": "github",
+      "name": "GitHub Release",
+      "url": "https://github.com/open-webui/open-webui/releases",
+      "priority": 1,
+      "regions": ["global"]
+    }
+  ],
+  "components": {
+    "backend": {
+      "filename": "open-webui-backend-{version}-{platform}-{arch}.{ext}",
+      "size": "~350MB",
+      "required": true,
+      "checksum": "sha256"
+    },
+    "whisper": {
+      "filename": "whisper-models-{version}.tar.gz",
+      "size": "~150MB",
+      "required": false,
+      "checksum": "sha256"
+    },
+    "embeddings": {
+      "filename": "embeddings-{version}.tar.gz",
+      "size": "~500MB",
+      "required": false,
+      "checksum": "sha256"
+    }
+  }
+}

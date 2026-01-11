@@ -13,6 +13,7 @@
 
 	import { addUserToGroup, removeUserFromGroup } from '$lib/apis/groups';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
+	import { runtimeApiBaseUrl } from '$lib/stores';
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Checkbox from '$lib/components/common/Checkbox.svelte';
@@ -22,6 +23,7 @@
 	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
 	import ChevronUp from '$lib/components/icons/ChevronUp.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import { authImage } from '$lib/actions/authImage';
 
 	export let groupId: string;
 	export let userCount = 0;
@@ -239,9 +241,11 @@
 									<Tooltip content={user.email} placement="top-start">
 										<div class="flex items-center">
 											<img
+												use:authImage
 												class="rounded-full w-6 h-6 object-cover mr-2.5 flex-shrink-0"
-												src={`${WEBUI_API_BASE_URL}/users/${user.id}/profile/image`}
+												src={`${$runtimeApiBaseUrl}/users/${user.id}/profile/image`}
 												alt="user"
+												loading="lazy"
 											/>
 
 											<div class="font-medium truncate">{user.name}</div>

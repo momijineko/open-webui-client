@@ -4,7 +4,7 @@
 	const i18n = getContext('i18n');
 
 	import { page } from '$app/stores';
-	import { channels, mobile, showSidebar, user } from '$lib/stores';
+	import { channels, mobile, showSidebar, user, runtimeApiBaseUrl } from '$lib/stores';
 	import { getUserActiveStatusById } from '$lib/apis/users';
 	import { updateChannelById, updateChannelMemberActiveStatusById } from '$lib/apis/channels';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
@@ -16,6 +16,7 @@
 	import Users from '$lib/components/icons/Users.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import Emoji from '$lib/components/common/Emoji.svelte';
+	import { authImage } from '$lib/actions/authImage';
 
 	export let onUpdate: Function = () => {};
 
@@ -92,7 +93,8 @@
 						<div class="flex ml-[1px] mr-0.5 relative">
 							{#each channelMembers.slice(0, 2) as u, index}
 								<img
-									src={`${WEBUI_API_BASE_URL}/users/${u.id}/profile/image`}
+									use:authImage
+									src={`${$runtimeApiBaseUrl}/users/${u.id}/profile/image`}
 									alt={u.name}
 									class=" size-5.5 rounded-full border-2 border-white dark:border-gray-900 {index ===
 									1

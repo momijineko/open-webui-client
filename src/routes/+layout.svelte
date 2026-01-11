@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { io } from 'socket.io-client';
 	import { spring } from 'svelte/motion';
 	import PyodideWorker from '$lib/workers/pyodide.worker?worker';
@@ -30,7 +30,10 @@
 		toolServers,
 		playingNotificationSound,
 		channels,
-		channelId
+		channelId,
+		runtimeBackendUrl,
+		runtimeApiBaseUrl,
+		remoteAuth
 	} from '$lib/stores';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -48,17 +51,38 @@
 	import { getAllTags, getChatList } from '$lib/apis/chats';
 	import { chatCompletion } from '$lib/apis/openai';
 
-	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL, WEBUI_HOSTNAME } from '$lib/constants';
+	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL, WEBUI_HOSTNAME, PLATFORM } from '$lib/constants';
 	import { bestMatchingLanguage } from '$lib/utils';
 	import { setTextScale } from '$lib/utils/text-scale';
+	import { dev } from '$app/environment';
+	import { getFetchFunction, isTauriAvailable, backendCommands, configCommands } from '$lib/utils/tauri';
+	import { checkBackendHealth } from '$lib/utils/backend-health';
 
 	import NotificationToast from '$lib/components/NotificationToast.svelte';
 	import AppSidebar from '$lib/components/app/AppSidebar.svelte';
+	import { TauriSidebar } from '$lib/components/DesktopOnly';
 	import SyncStatsModal from '$lib/components/chat/Settings/SyncStatsModal.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import { getUserSettings } from '$lib/apis/users';
 	import dayjs from 'dayjs';
 	import { getChannels } from '$lib/apis/channels';
+
+	// Backend loading state for Tauri environment
+	let backendLoading = isTauriAvailable();
+
+	// Use static path for desktop/Tauri environment
+	const faviconPath = PLATFORM.isDesktop ? '/static/favicon.png' : `${WEBUI_BASE_URL}/static/favicon.png`;
+
+	// Override global fetch with Tauri IPC proxy in desktop environment
+	// This bypasses browser CORS restrictions by routing backend requests through Rust
+	if (isTauriAvailable()) {
+		const originalFetch = window.fetch.bind(window);
+
+		// Override fetch with proxied version
+		window.fetch = getFetchFunction(originalFetch);
+
+		console.log('[Tauri] Using IPC proxy for backend API requests');
+	}
 
 	const unregisterServiceWorkers = async () => {
 		if ('serviceWorker' in navigator) {
@@ -99,14 +123,30 @@
 	const BREAKPOINT = 768;
 
 	const setupSocket = async (enableWebsocket) => {
-		const _socket = io(`${WEBUI_BASE_URL}` || undefined, {
+		// Check if remote mode is configured
+		const isRemoteMode = typeof window !== 'undefined' && (window as any).REMOTE_BACKEND_URL;
+		const socketUrl = isRemoteMode ? (window as any).REMOTE_BACKEND_URL : WEBUI_BASE_URL;
+
+		console.log('[Socket] Connecting to:', socketUrl, isRemoteMode ? '(remote mode)' : '(local mode)');
+
+		// Build auth object
+		const authObj: Record<string, string> = { token: localStorage.token };
+
+		// Add Basic Auth for remote mode if configured
+		if (isRemoteMode && (window as any).REMOTE_BACKEND_AUTH) {
+			const remoteAuth = (window as any).REMOTE_BACKEND_AUTH;
+			authObj.username = remoteAuth.username;
+			authObj.password = remoteAuth.password;
+		}
+
+		const _socket = io(`${socketUrl}` || undefined, {
 			reconnection: true,
 			reconnectionDelay: 1000,
 			reconnectionDelayMax: 5000,
 			randomizationFactor: 0.5,
 			path: '/ws/socket.io',
 			transports: enableWebsocket ? ['websocket'] : ['polling', 'websocket'],
-			auth: { token: localStorage.token }
+			auth: authObj
 		});
 		await socket.set(_socket);
 
@@ -362,7 +402,7 @@
 						if ($settings?.notificationEnabled ?? false) {
 							new Notification(`${title} • Open WebUI`, {
 								body: content,
-								icon: `${WEBUI_BASE_URL}/static/favicon.png`
+								icon: faviconPath
 							});
 						}
 					}
@@ -565,7 +605,7 @@
 					if ($settings?.notificationEnabled ?? false) {
 						new Notification(`${title} • Open WebUI`, {
 							body: data?.content,
-							icon: `${WEBUI_API_BASE_URL}/users/${data?.user?.id}/profile/image`
+							icon: `${$runtimeApiBaseUrl}/users/${data?.user?.id}/profile/image`
 						});
 					}
 				}
@@ -742,11 +782,126 @@
 		});
 
 		let backendConfig = null;
-		try {
-			backendConfig = await getBackendConfig();
-			console.log('Backend config:', backendConfig);
-		} catch (error) {
-			console.error('Error loading backend config:', error);
+
+		if (isTauriAvailable()) {
+			// Check if user has completed setup
+			try {
+				const appConfig = await configCommands.get();
+
+				if (!appConfig.setup_completed && $page.url.pathname !== '/setup') {
+					// First time - redirect to setup page
+					console.log('[Tauri] First launch, redirecting to setup...');
+					await goto('/setup');
+					backendLoading = false;
+					return;
+				}
+
+				// If completed setup as remote mode, connect to remote backend
+				if (appConfig.setup_completed && appConfig.setup_mode === 'remote') {
+					console.log('[Tauri] Remote mode configured, connecting to remote backend...');
+					console.log('[Tauri] Remote URL:', appConfig.remote_url);
+
+					if (appConfig.remote_url) {
+						try {
+							// 构建请求头，添加 Basic Auth
+							const headers: Record<string, string> = {
+								'Content-Type': 'application/json'
+							};
+
+							if (appConfig.remote_username && appConfig.remote_password) {
+								const credentials = btoa(`${appConfig.remote_username}:${appConfig.remote_password}`);
+								headers['Authorization'] = `Basic ${credentials}`;
+							}
+
+							// 直接从远程服务器获取配置
+							const remoteConfigUrl = appConfig.remote_url.replace(/\/$/, '') + '/api/config';
+							const response = await fetch(remoteConfigUrl, {
+								method: 'GET',
+								headers
+							});
+
+							if (response.ok) {
+								backendConfig = await response.json();
+								console.log('[Tauri] Remote backend config loaded successfully');
+
+								// 设置全局远程 URL store
+								if (typeof window !== 'undefined') {
+									(window as any).REMOTE_BACKEND_URL = appConfig.remote_url;
+									(window as any).REMOTE_BACKEND_AUTH = appConfig.remote_username
+										? { username: appConfig.remote_username, password: appConfig.remote_password }
+										: null;
+									console.log('[Tauri] Remote backend URL set to:', appConfig.remote_url);
+
+									// Update runtime backend URL store for reactive components
+									runtimeBackendUrl.set(appConfig.remote_url);
+
+									// Update remote auth store for authenticated image requests
+									if (appConfig.remote_username && appConfig.remote_password) {
+										remoteAuth.set({
+											username: appConfig.remote_username,
+											password: appConfig.remote_password
+										});
+									} else {
+										remoteAuth.set(null);
+									}
+								}
+							} else {
+								console.error('[Tauri] Failed to connect to remote backend:', response.status);
+							}
+						} catch (error) {
+							console.error('[Tauri] Error connecting to remote backend:', error);
+						}
+					} else {
+						console.warn('[Tauri] Remote mode configured but no remote URL found');
+					}
+
+					backendLoading = false;
+				} else {
+					// In Tauri environment, quickly check if backend is available
+					// Don't auto-start backend here - let setup page handle it
+					console.log('[Tauri] Checking backend health...');
+					const healthResult = await checkBackendHealth({
+						maxRetries: 3, // Only try a few times to avoid long wait
+						retryDelay: 500,
+						verbose: false
+					});
+
+					if (healthResult.healthy) {
+						backendConfig = healthResult.config;
+						console.log('[Tauri] Backend is ready!');
+					} else {
+						console.log('[Tauri] Backend not available - may need setup or remote instance');
+					}
+
+					backendLoading = false;
+				}
+			} catch (error) {
+				console.error('[Tauri] Failed to check app config:', error);
+				// Continue with backend health check anyway
+				console.log('[Tauri] Checking backend health...');
+				const healthResult = await checkBackendHealth({
+					maxRetries: 3,
+					retryDelay: 500,
+					verbose: false
+				});
+
+				if (healthResult.healthy) {
+					backendConfig = healthResult.config;
+					console.log('[Tauri] Backend is ready!');
+				} else {
+					console.log('[Tauri] Backend not available');
+				}
+
+				backendLoading = false;
+			}
+		} else {
+			// In web environment, just try once
+			try {
+				backendConfig = await getBackendConfig();
+				console.log('Backend config:', backendConfig);
+			} catch (error) {
+				console.error('Error loading backend config:', error);
+			}
 		}
 		// Initialize i18n even if we didn't get a backend config,
 		// so `/error` can show something that's not `undefined`.
@@ -799,8 +954,14 @@
 				}
 			}
 		} else {
-			// Redirect to /error when Backend Not Detected
-			await goto(`/error`);
+			// Skip backend check for setup and test-tauri pages (used in desktop client)
+			const skipRoutes = ['/setup', '/test-tauri'];
+			const shouldSkip = skipRoutes.some(route => $page.url.pathname.startsWith(route));
+
+			if (!shouldSkip) {
+				// Redirect to /error when Backend Not Detected
+				await goto(`/error`);
+			}
 		}
 
 		await tick();
@@ -840,8 +1001,46 @@
 			showSyncStatsModal = true;
 		}
 
+		// Watch for route changes in Tauri environment
+		// When navigating from /error page, check if backend is now available
+		let unsubscribePage: (() => void) | null = null;
+
+		if (isTauriAvailable()) {
+			let previousPathname = $page.url.pathname;
+
+			unsubscribePage = page.subscribe(async (page) => {
+				const currentPathname = page.url.pathname;
+
+				// If navigating away from /error page, check backend status
+				if (previousPathname === '/error' && currentPathname !== '/error') {
+					console.log('[Tauri] Navigation from /error, checking backend status...');
+
+					// Quick check if backend is now available
+					try {
+						const response = await fetch('http://127.0.0.1:8080/api/config', {
+							method: 'GET',
+							headers: { 'Content-Type': 'application/json' }
+						});
+
+						if (response.ok) {
+							console.log('[Tauri] Backend is now available, reloading page...');
+							// Reload the page to fetch fresh data
+							window.location.reload();
+						}
+					} catch (error) {
+						console.log('[Tauri] Backend still not available:', error);
+					}
+				}
+
+				previousPathname = currentPathname;
+			});
+		}
+
 		return () => {
 			window.removeEventListener('resize', onResize);
+			if (unsubscribePage) {
+				unsubscribePage();
+			}
 		};
 	});
 
@@ -853,7 +1052,7 @@
 
 <svelte:head>
 	<title>{$WEBUI_NAME}</title>
-	<link crossorigin="anonymous" rel="icon" href="{WEBUI_BASE_URL}/static/favicon.png" />
+	<link crossorigin="anonymous" rel="icon" href={faviconPath} />
 
 	<meta name="apple-mobile-web-app-title" content={$WEBUI_NAME} />
 	<meta name="description" content={$WEBUI_NAME} />
@@ -873,7 +1072,28 @@
 {/if}
 
 {#if loaded}
-	{#if $isApp}
+	{#if PLATFORM.isDesktop}
+		<!-- Tauri 侧边栏：桌面客户端专用 -->
+		<div class="flex flex-row h-screen">
+			<TauriSidebar />
+
+			<div class="w-full flex-1 max-w-[calc(100%-4.5rem)]">
+				{#if backendLoading}
+					<!-- Backend loading state -->
+					<div class="flex flex-col items-center justify-center h-full bg-white dark:bg-gray-900">
+						<div class="text-center space-y-4">
+							<div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-gray-100"></div>
+							<p class="text-gray-600 dark:text-gray-400">正在等待后端启动...</p>
+							<p class="text-sm text-gray-500 dark:text-gray-500">请稍候，这可能需要几秒钟</p>
+						</div>
+					</div>
+				{:else}
+					<slot />
+				{/if}
+			</div>
+		</div>
+	{:else if $isApp}
+		<!-- Electron 侧边栏：仅在 Electron 应用中显示 -->
 		<div class="flex flex-row h-screen">
 			<AppSidebar />
 

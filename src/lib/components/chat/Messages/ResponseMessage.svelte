@@ -22,7 +22,8 @@
 		settings,
 		temporaryChatEnabled,
 		TTSWorker,
-		user
+		user,
+		runtimeApiBaseUrl
 	} from '$lib/stores';
 	import { synthesizeOpenAISpeech } from '$lib/apis/audio';
 	import { imageGenerations } from '$lib/apis/images';
@@ -610,7 +611,7 @@
 	>
 		<div class={`shrink-0 ltr:mr-3 rtl:ml-3 hidden @lg:flex mt-1 `}>
 			<ProfileImage
-				src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}`}
+				src={`${$runtimeApiBaseUrl}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}`}
 				className={'size-8 assistant-message-profile-image'}
 			/>
 		</div>

@@ -3,7 +3,7 @@
 
 	const i18n = getContext('i18n');
 
-	import { user as _user, channels, socket } from '$lib/stores';
+	import { user as _user, channels, socket, runtimeApiBaseUrl } from '$lib/stores';
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 	import { getChannels, getDMChannelByUserId } from '$lib/apis/channels';
 
@@ -13,6 +13,7 @@
 	import { goto } from '$app/navigation';
 	import Emoji from '$lib/components/common/Emoji.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
+	import { authImage } from '$lib/actions/authImage';
 
 	export let user = null;
 
@@ -37,7 +38,8 @@
 		<div class=" flex gap-3.5 w-full px-3 items-center">
 			<div class=" items-center flex shrink-0">
 				<img
-					src={`${WEBUI_API_BASE_URL}/users/${user?.id}/profile/image`}
+					use:authImage
+					src={`${$runtimeApiBaseUrl}/users/${user?.id}/profile/image`}
 					class=" size-14 object-cover rounded-xl"
 					alt="profile"
 				/>

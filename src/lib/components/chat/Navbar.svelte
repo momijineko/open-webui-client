@@ -13,7 +13,8 @@
 		showControls,
 		showSidebar,
 		temporaryChatEnabled,
-		user
+		user,
+		runtimeApiBaseUrl
 	} from '$lib/stores';
 
 	import { slide } from 'svelte/transition';
@@ -26,6 +27,7 @@
 	import Menu from '$lib/components/layout/Navbar/Menu.svelte';
 	import UserMenu from '$lib/components/layout/Sidebar/UserMenu.svelte';
 	import AdjustmentsHorizontal from '../icons/AdjustmentsHorizontal.svelte';
+	import { authImage } from '$lib/actions/authImage';
 
 	import PencilSquare from '../icons/PencilSquare.svelte';
 	import Banner from '../common/Banner.svelte';
@@ -243,7 +245,8 @@
 								<div class=" self-center">
 									<span class="sr-only">{$i18n.t('User menu')}</span>
 									<img
-										src={`${WEBUI_API_BASE_URL}/users/${$user?.id}/profile/image`}
+										use:authImage
+										src={`${$runtimeApiBaseUrl}/users/${$user?.id}/profile/image`}
 										class="size-6 object-cover rounded-full"
 										alt=""
 										draggable="false"

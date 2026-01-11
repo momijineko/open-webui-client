@@ -3,7 +3,7 @@
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 	import { config, models, settings } from '$lib/stores';
-	import { WEBUI_BASE_URL } from '$lib/constants';
+	import { WEBUI_BASE_URL, PLATFORM } from '$lib/constants';
 
 	import { onMount, tick, getContext } from 'svelte';
 	import { createNewModel, getModelById } from '$lib/apis/models';
@@ -12,6 +12,9 @@
 	import ModelEditor from '$lib/components/workspace/Models/ModelEditor.svelte';
 
 	const i18n = getContext('i18n');
+
+	// Use static path for desktop/Tauri environment
+	const faviconPath = PLATFORM.isDesktop ? '/static/favicon.png' : `${WEBUI_BASE_URL}/static/favicon.png`;
 
 	const onSubmit = async (modelInfo) => {
 		if ($models.find((m) => m.id === modelInfo.id)) {
@@ -35,7 +38,7 @@
 				meta: {
 					...modelInfo.meta,
 					profile_image_url:
-						modelInfo.meta.profile_image_url ?? `${WEBUI_BASE_URL}/static/favicon.png`,
+						modelInfo.meta.profile_image_url ?? faviconPath,
 					suggestion_prompts: modelInfo.meta.suggestion_prompts
 						? modelInfo.meta.suggestion_prompts.filter((prompt) => prompt.content !== '')
 						: null

@@ -16,6 +16,8 @@ __pycache__/
 *$py.class
 .nvmrc
 CLAUDE.md
+.claude/
+
 # C extensions
 *.so
 
@@ -310,3 +312,9 @@ dist
 cypress/videos
 cypress/screenshots
 .vscode/settings.json
+
+# Windows error files
+nul
+
+# Build tools installers
+*.exe

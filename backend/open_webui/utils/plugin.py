@@ -6,6 +6,7 @@ from importlib import util
 import types
 import tempfile
 import logging
+import asyncio
 
 from open_webui.env import PIP_OPTIONS, PIP_PACKAGE_INDEX_OPTIONS, OFFLINE_MODE
 from open_webui.models.functions import Functions
@@ -313,3 +314,18 @@ def install_tool_and_function_dependencies():
         install_frontmatter_requirements(all_dependencies.strip(", "))
     except Exception as e:
         log.error(f"Error installing requirements: {e}")
+
+
+async def install_tool_and_function_dependencies_async():
+    """
+    Async version of install_tool_and_function_dependencies.
+    Installs all dependencies for all admin tools and active functions in a background thread.
+
+    This allows the application to start immediately without waiting for dependency installation.
+    """
+    async def _install_in_thread():
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, install_tool_and_function_dependencies)
+
+    # 启动后台任务，不等待完成
+    asyncio.create_task(_install_in_thread())

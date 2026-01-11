@@ -6,7 +6,7 @@
 	import { onMount, getContext, tick } from 'svelte';
 	const i18n = getContext('i18n');
 
-	import { WEBUI_NAME, config, mobile, models as _models, settings, user } from '$lib/stores';
+	import { WEBUI_NAME, config, mobile, models as _models, settings, user, runtimeApiBaseUrl } from '$lib/stores';
 	import {
 		createNewModel,
 		deleteAllModels,
@@ -40,6 +40,7 @@
 	import Eye from '$lib/components/icons/Eye.svelte';
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 	import { goto } from '$app/navigation';
+	import { authImage } from '$lib/actions/authImage';
 
 	let shiftKey = false;
 
@@ -359,7 +360,8 @@
 										: 'opacity-50 dark:opacity-50'} "
 								>
 									<img
-										src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model.id}`}
+										use:authImage
+										src={`${$runtimeApiBaseUrl}/models/model/profile/image?id=${model.id}`}
 										alt="modelfile profile"
 										class=" rounded-full w-full h-auto object-cover"
 									/>

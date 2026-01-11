@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, getContext } from 'svelte';
-	import { models } from '$lib/stores';
+	import { models, runtimeApiBaseUrl } from '$lib/stores';
 	import { getLeaderboard } from '$lib/apis/evaluations';
 	import ModelModal from './LeaderboardModal.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -9,6 +9,7 @@
 	import ChevronUp from '$lib/components/icons/ChevronUp.svelte';
 	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
+	import { authImage } from '$lib/actions/authImage';
 
 	const i18n = getContext('i18n');
 
@@ -178,7 +179,8 @@
 						<td class="px-3 py-1.5">
 							<div class="flex items-center gap-2">
 								<img
-									src="{WEBUI_API_BASE_URL}/models/model/profile/image?id={model.id}"
+									use:authImage
+									src={`${$runtimeApiBaseUrl}/models/model/profile/image?id=${model.id}`}
 									alt={model.name}
 									class="size-5 rounded-full object-cover"
 								/>

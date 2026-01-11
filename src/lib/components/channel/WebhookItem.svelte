@@ -2,7 +2,7 @@
 	import { getContext } from 'svelte';
 	const i18n = getContext('i18n');
 
-	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
+	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL, PLATFORM } from '$lib/constants';
 
 	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
 	import Clipboard from '$lib/components/icons/Clipboard.svelte';
@@ -21,6 +21,9 @@
 
 	let name = webhook.name;
 	let image = webhook.profile_image_url || '';
+
+	// Use static path for desktop/Tauri environment
+	const faviconPath = PLATFORM.isDesktop ? '/static/favicon.png' : `${WEBUI_BASE_URL}/static/favicon.png`;
 
 	// Notify parent when changes occur
 	$: if (name !== webhook.name || image !== (webhook.profile_image_url || '')) {
@@ -90,7 +93,7 @@
 		on:click={onClick}
 	>
 		<img
-			src={image || `${WEBUI_BASE_URL}/static/favicon.png`}
+			src={image || faviconPath}
 			class="rounded-full size-8 object-cover flex-shrink-0"
 			alt=""
 		/>
@@ -124,7 +127,7 @@
 					on:click={() => filesInputElement.click()}
 				>
 					<img
-						src={image || `${WEBUI_BASE_URL}/static/favicon.png`}
+						src={image || faviconPath}
 						class="size-8 object-cover"
 						alt=""
 					/>

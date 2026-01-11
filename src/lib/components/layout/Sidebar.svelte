@@ -26,7 +26,8 @@
 		models,
 		selectedFolder,
 		WEBUI_NAME,
-		sidebarWidth
+		sidebarWidth,
+		runtimeApiBaseUrl
 	} from '$lib/stores';
 	import { onMount, getContext, tick, onDestroy } from 'svelte';
 
@@ -42,7 +43,10 @@
 		importChats
 	} from '$lib/apis/chats';
 	import { createNewFolder, getFolders, updateFolderParentIdById } from '$lib/apis/folders';
-	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
+	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL, PLATFORM } from '$lib/constants';
+
+// Use static path for desktop/Tauri environment
+const faviconPath = PLATFORM.isDesktop ? '/static/favicon.png' : `${WEBUI_BASE_URL}/static/favicon.png`;
 
 	import ArchivedChatsModal from './ArchivedChatsModal.svelte';
 	import UserMenu from './Sidebar/UserMenu.svelte';
@@ -64,6 +68,7 @@
 	import Note from '../icons/Note.svelte';
 	import { slide } from 'svelte/transition';
 	import HotkeyHint from '../common/HotkeyHint.svelte';
+	import { authImage } from '$lib/actions/authImage';
 
 	const BREAKPOINT = 768;
 
@@ -670,7 +675,7 @@
 					>
 						<div class=" self-center flex items-center justify-center size-9">
 							<img
-								src="{WEBUI_BASE_URL}/static/favicon.png"
+								src={faviconPath}
 								class="sidebar-new-chat-icon size-6 rounded-full group-hover:hidden"
 								alt=""
 							/>
@@ -806,7 +811,8 @@
 							>
 								<div class="self-center relative">
 									<img
-										src={`${WEBUI_API_BASE_URL}/users/${$user?.id}/profile/image`}
+										use:authImage
+										src={`${$runtimeApiBaseUrl}/users/${$user?.id}/profile/image`}
 										class=" size-7 object-cover rounded-full"
 										alt={$i18n.t('Open User Profile Menu')}
 										aria-label={$i18n.t('Open User Profile Menu')}
@@ -868,7 +874,7 @@
 				>
 					<img
 						crossorigin="anonymous"
-						src="{WEBUI_BASE_URL}/static/favicon.png"
+						src={faviconPath}
 						class="sidebar-new-chat-icon size-6 rounded-full"
 						alt=""
 					/>
@@ -1375,7 +1381,8 @@
 							>
 								<div class=" self-center mr-3 relative">
 									<img
-										src={`${WEBUI_API_BASE_URL}/users/${$user?.id}/profile/image`}
+										use:authImage
+										src={`${$runtimeApiBaseUrl}/users/${$user?.id}/profile/image`}
 										class=" size-7 object-cover rounded-full"
 										alt={$i18n.t('Open User Profile Menu')}
 										aria-label={$i18n.t('Open User Profile Menu')}

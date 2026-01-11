@@ -2,7 +2,7 @@
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 	import { marked } from 'marked';
 
-	import { config, user, models as _models, temporaryChatEnabled } from '$lib/stores';
+	import { config, user, models as _models, temporaryChatEnabled, runtimeApiBaseUrl } from '$lib/stores';
 	import { onMount, getContext } from 'svelte';
 
 	import { blur, fade } from 'svelte/transition';
@@ -11,6 +11,7 @@
 	import { sanitizeResponseContent } from '$lib/utils';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import EyeSlash from '$lib/components/icons/EyeSlash.svelte';
+	import { authImage } from '$lib/actions/authImage';
 
 	const i18n = getContext('i18n');
 
@@ -53,7 +54,8 @@
 							placement="right"
 						>
 							<img
-								src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}`}
+								use:authImage
+								src={`${$runtimeApiBaseUrl}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}`}
 								class=" size-[2.7rem] rounded-full border-[1px] border-gray-100 dark:border-none"
 								alt="logo"
 								draggable="false"

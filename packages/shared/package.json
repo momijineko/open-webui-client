@@ -1,0 +1,13 @@
+{
+  "name": "@open-webui/shared",
+  "version": "0.7.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./constants/platforms": "./src/constants/platforms.ts",
+    "./types/instance": "./src/types/instance.ts",
+    "./utils/api": "./src/utils/api.ts"
+  }
+}

@@ -1,10 +1,71 @@
 import { browser, dev } from '$app/environment';
 // import { version } from '../../package.json';
 
+// Tauri 2.x 平台检测 - 使用更可靠的方法
+let isTauriDesktop = false;
+if (typeof window !== 'undefined') {
+	// 检查 __TAURI__ 或 __TAURI_INTERNALS__ 对象 (Tauri 2.x)
+	isTauriDesktop = !!(window as any).__TAURI__ || '__TAURI_INTERNALS__' in window;
+}
+
 export const APP_NAME = 'Open WebUI';
 
-export const WEBUI_HOSTNAME = browser ? (dev ? `${location.hostname}:8080` : ``) : '';
-export const WEBUI_BASE_URL = browser ? (dev ? `http://${WEBUI_HOSTNAME}` : ``) : ``;
+// 平台检测
+export const PLATFORM = {
+	isDesktop: isTauriDesktop,
+	isMobile: typeof window !== 'undefined' && 'Capacitor' in window,
+	isWeb: typeof window !== 'undefined' && !isTauriDesktop && !('Capacitor' in window)
+};
+
+// 根据平台动态配置 URL
+export const WEBUI_HOSTNAME = browser
+	? (PLATFORM.isDesktop ? '127.0.0.1:8080' : (dev ? `${location.hostname}:8080` : ``))
+	: '';
+
+export const WEBUI_BASE_URL = browser
+	? (PLATFORM.isDesktop ? `http://${WEBUI_HOSTNAME}` : (dev ? `http://${WEBUI_HOSTNAME}` : ``))
+	: '';
+
+/**
+ * Get the backend base URL at runtime
+ * Supports remote mode configuration via window.REMOTE_BACKEND_URL
+ */
+export function getBackendBaseUrl(): string {
+	if (typeof window !== 'undefined' && (window as any).REMOTE_BACKEND_URL) {
+		return (window as any).REMOTE_BACKEND_URL;
+	}
+	return WEBUI_BASE_URL;
+}
+
+/**
+ * Get the backend API base URL at runtime
+ */
+export function getBackendApiBaseUrl(): string {
+	const baseUrl = getBackendBaseUrl();
+	return baseUrl ? `${baseUrl}/api/v1` : '';
+}
+
+/**
+ * Get authenticated image URL by adding Basic Auth credentials as query parameters
+ * This is needed for <img> tags which can't include custom headers
+ */
+export function getAuthenticatedImageUrl(imagePath: string): string {
+	const baseUrl = getBackendBaseUrl();
+	const auth = (window as any).REMOTE_BACKEND_AUTH as { username: string; password: string } | undefined;
+
+	if (!baseUrl) return imagePath;
+
+	let url = `${baseUrl}${imagePath}`;
+
+	// Add Basic Auth as query parameters if remote mode is configured
+	if (auth && auth.username && auth.password) {
+		const separator = url.includes('?') ? '&' : '?';
+		url += `${separator}username=${encodeURIComponent(auth.username)}&password=${encodeURIComponent(auth.password)}`;
+	}
+
+	return url;
+}
+
 export const WEBUI_API_BASE_URL = `${WEBUI_BASE_URL}/api/v1`;
 
 export const OLLAMA_API_BASE_URL = `${WEBUI_BASE_URL}/ollama`;
@@ -96,8 +157,3 @@ export const SUPPORTED_FILE_EXTENSIONS = [
 ];
 
 export const PASTED_TEXT_CHARACTER_LIMIT = 1000;
-
-// Source: https://kit.svelte.dev/docs/modules#$env-static-public
-// This feature, akin to $env/static/private, exclusively incorporates environment variables
-// that are prefixed with config.kit.env.publicPrefix (usually set to PUBLIC_).
-// Consequently, these variables can be securely exposed to client-side code.

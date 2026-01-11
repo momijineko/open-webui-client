@@ -9,7 +9,8 @@
 	import { getUsage } from '$lib/apis';
 	import { getSessionUser, userSignOut } from '$lib/apis/auths';
 
-	import { showSettings, mobile, showSidebar, showShortcuts, user, config } from '$lib/stores';
+	import { showSettings, mobile, showSidebar, showShortcuts, user, config, runtimeApiBaseUrl } from '$lib/stores';
+	import { authImage } from '$lib/actions/authImage';
 
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
@@ -95,7 +96,8 @@
 				<div class=" flex gap-3.5 w-full p-2.5 items-center">
 					<div class=" items-center flex shrink-0">
 						<img
-							src={`${WEBUI_API_BASE_URL}/users/${$user?.id}/profile/image`}
+							use:authImage
+							src={`${$runtimeApiBaseUrl}/users/${$user?.id}/profile/image`}
 							class=" size-10 object-cover rounded-full"
 							alt="profile"
 						/>

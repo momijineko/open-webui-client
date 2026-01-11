@@ -28,5 +28,11 @@ export default defineConfig({
 	},
 	esbuild: {
 		pure: process.env.ENV === 'dev' ? [] : ['console.log', 'console.debug', 'console.error']
+	},
+	// Allow serving files from static directory
+	server: {
+		fs: {
+			allow: ['..', '.']
+		}
 	}
 });

@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { WEBUI_NAME, config } from '$lib/stores';
 	import { onMount, getContext } from 'svelte';
+	import { isTauriAvailable } from '$lib/utils/tauri';
 
 	const i18n = getContext('i18n');
 
@@ -43,7 +44,7 @@
 						>
 					</div>
 
-					<div class=" mt-6 mx-auto relative group w-fit">
+					<div class=" mt-6 mx-auto relative group w-fit flex gap-3">
 						<button
 							class="relative z-20 flex px-5 py-2 rounded-full bg-gray-100 hover:bg-gray-200 transition font-medium text-sm text-black"
 							on:click={() => {
@@ -52,6 +53,16 @@
 						>
 							{$i18n.t('Check Again')}
 						</button>
+						{#if isTauriAvailable()}
+							<button
+								class="relative z-20 flex px-5 py-2 rounded-full bg-blue-100 hover:bg-blue-200 transition font-medium text-sm text-black"
+								on:click={() => {
+									window.location.href = '/setup';
+								}}
+							>
+								前往设置
+							</button>
+						{/if}
 					</div>
 				</div>
 			</div>

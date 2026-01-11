@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { WEBUI_BASE_URL } from '$lib/constants';
+	import { WEBUI_BASE_URL, PLATFORM } from '$lib/constants';
 	import { settings, playingNotificationSound, isLastActiveTab } from '$lib/stores';
 	import DOMPurify from 'dompurify';
 
@@ -7,6 +7,9 @@
 	import { createEventDispatcher, onMount } from 'svelte';
 
 	const dispatch = createEventDispatcher();
+
+	// Use static path for desktop/Tauri environment
+	const faviconPath = PLATFORM.isDesktop ? '/static/favicon.png' : `${WEBUI_BASE_URL}/static/favicon.png`;
 
 	export let onClick: Function = () => {};
 	export let title: string = 'HI';
@@ -85,7 +88,7 @@
 	}}
 >
 	<div class="shrink-0 self-top -translate-y-0.5">
-		<img src="{WEBUI_BASE_URL}/static/favicon.png" alt="favicon" class="size-6 rounded-full" />
+		<img src={faviconPath} alt="favicon" class="size-6 rounded-full" />
 	</div>
 
 	<div>

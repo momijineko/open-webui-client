@@ -4,7 +4,7 @@
 	import { getContext, tick } from 'svelte';
 	import dayjs from '$lib/dayjs';
 
-	import { mobile, settings, user } from '$lib/stores';
+	import { mobile, settings, user, runtimeApiBaseUrl } from '$lib/stores';
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -16,6 +16,7 @@
 	import { toast } from 'svelte-sonner';
 	import Tag from '$lib/components/icons/Tag.svelte';
 	import Label from '$lib/components/icons/Label.svelte';
+	import { authImage } from '$lib/actions/authImage';
 
 	const i18n = getContext('i18n');
 
@@ -77,7 +78,8 @@
 			<div class="flex items-center min-w-fit">
 				<Tooltip content={$user?.role === 'admin' ? (item?.value ?? '') : ''} placement="top-start">
 					<img
-						src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${item.model.id}&lang=${$i18n.language}`}
+						use:authImage
+						src={`${$runtimeApiBaseUrl}/models/model/profile/image?id=${item.model.id}&lang=${$i18n.language}`}
 						alt="Model"
 						class="rounded-full size-5 flex items-center"
 						loading="lazy"

@@ -1,6 +1,6 @@
 <script>
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
-	import { WEBUI_NAME, config, user, showSidebar } from '$lib/stores';
+	import { WEBUI_NAME, config, user, showSidebar, runtimeApiBaseUrl } from '$lib/stores';
 	import { goto } from '$app/navigation';
 	import { onMount, getContext } from 'svelte';
 
@@ -34,6 +34,7 @@
 	import Markdown from '$lib/components/chat/Messages/Markdown.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ProfilePreview from '$lib/components/channel/Messages/Message/ProfilePreview.svelte';
+	import { authImage } from '$lib/actions/authImage';
 
 	const i18n = getContext('i18n');
 
@@ -359,9 +360,11 @@
 							<div class="flex items-center gap-2">
 								<ProfilePreview {user} side="right" align="center" sideOffset={6}>
 									<img
+										use:authImage
 										class="rounded-full w-6 h-6 object-cover mr-0.5 flex-shrink-0"
-										src={`${WEBUI_API_BASE_URL}/users/${user.id}/profile/image`}
+										src={`${$runtimeApiBaseUrl}/users/${user.id}/profile/image`}
 										alt="user"
+										loading="lazy"
 									/>
 								</ProfilePreview>
 

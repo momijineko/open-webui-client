@@ -624,6 +624,9 @@ async def lifespan(app: FastAPI):
 
     asyncio.create_task(periodic_usage_pool_cleanup())
 
+    # 在后台异步加载 RAG 模型，避免阻塞应用启动
+    asyncio.create_task(load_rag_models_async(app))
+
     if app.state.config.ENABLE_BASE_MODELS_CACHE:
         await get_all_models(
             Request(
@@ -1022,64 +1025,86 @@ app.state.rf = None
 app.state.YOUTUBE_LOADER_TRANSLATION = None
 
 
-try:
-    app.state.ef = get_ef(
-        app.state.config.RAG_EMBEDDING_ENGINE, app.state.config.RAG_EMBEDDING_MODEL
-    )
-    if (
-        app.state.config.ENABLE_RAG_HYBRID_SEARCH
-        and not app.state.config.BYPASS_EMBEDDING_AND_RETRIEVAL
-    ):
-        app.state.rf = get_rf(
+# 延迟加载 RAG 模型的辅助函数
+async def load_rag_models_async(app):
+    """在后台异步加载 RAG 模型，避免阻塞应用启动"""
+    import asyncio
+
+    log.info("Starting background RAG model loading...")
+
+    try:
+        # 在线程池中执行同步的模型加载操作
+        loop = asyncio.get_event_loop()
+        ef = await loop.run_in_executor(
+            None,
+            lambda: get_ef(
+                app.state.config.RAG_EMBEDDING_ENGINE,
+                app.state.config.RAG_EMBEDDING_MODEL
+            )
+        )
+        app.state.ef = ef
+        log.info("Embedding function loaded successfully")
+
+        if (
+            app.state.config.ENABLE_RAG_HYBRID_SEARCH
+            and not app.state.config.BYPASS_EMBEDDING_AND_RETRIEVAL
+        ):
+            rf = await loop.run_in_executor(
+                None,
+                lambda: get_rf(
+                    app.state.config.RAG_RERANKING_ENGINE,
+                    app.state.config.RAG_RERANKING_MODEL,
+                    app.state.config.RAG_EXTERNAL_RERANKER_URL,
+                    app.state.config.RAG_EXTERNAL_RERANKER_API_KEY,
+                    app.state.config.RAG_EXTERNAL_RERANKER_TIMEOUT,
+                )
+            )
+            app.state.rf = rf
+            log.info("Reranking function loaded successfully")
+        else:
+            app.state.rf = None
+
+        # 更新 embedding 和 reranking 函数
+        app.state.EMBEDDING_FUNCTION = get_embedding_function(
+            app.state.config.RAG_EMBEDDING_ENGINE,
+            app.state.config.RAG_EMBEDDING_MODEL,
+            embedding_function=app.state.ef,
+            url=(
+                app.state.config.RAG_OPENAI_API_BASE_URL
+                if app.state.config.RAG_EMBEDDING_ENGINE == "openai"
+                else (
+                    app.state.config.RAG_OLLAMA_BASE_URL
+                    if app.state.config.RAG_EMBEDDING_ENGINE == "ollama"
+                    else app.state.config.RAG_AZURE_OPENAI_BASE_URL
+                )
+            ),
+            key=(
+                app.state.config.RAG_OPENAI_API_KEY
+                if app.state.config.RAG_EMBEDDING_ENGINE == "openai"
+                else (
+                    app.state.config.RAG_OLLAMA_API_KEY
+                    if app.state.config.RAG_EMBEDDING_ENGINE == "ollama"
+                    else app.state.config.RAG_AZURE_OPENAI_API_KEY
+                )
+            ),
+            embedding_batch_size=app.state.config.RAG_EMBEDDING_BATCH_SIZE,
+            azure_api_version=(
+                app.state.config.RAG_AZURE_OPENAI_API_VERSION
+                if app.state.config.RAG_EMBEDDING_ENGINE == "azure_openai"
+                else None
+            ),
+            enable_async=app.state.config.ENABLE_ASYNC_EMBEDDING,
+        )
+
+        app.state.RERANKING_FUNCTION = get_reranking_function(
             app.state.config.RAG_RERANKING_ENGINE,
             app.state.config.RAG_RERANKING_MODEL,
-            app.state.config.RAG_EXTERNAL_RERANKER_URL,
-            app.state.config.RAG_EXTERNAL_RERANKER_API_KEY,
-            app.state.config.RAG_EXTERNAL_RERANKER_TIMEOUT,
+            reranking_function=app.state.rf,
         )
-    else:
-        app.state.rf = None
-except Exception as e:
-    log.error(f"Error updating models: {e}")
-    pass
-
-
-app.state.EMBEDDING_FUNCTION = get_embedding_function(
-    app.state.config.RAG_EMBEDDING_ENGINE,
-    app.state.config.RAG_EMBEDDING_MODEL,
-    embedding_function=app.state.ef,
-    url=(
-        app.state.config.RAG_OPENAI_API_BASE_URL
-        if app.state.config.RAG_EMBEDDING_ENGINE == "openai"
-        else (
-            app.state.config.RAG_OLLAMA_BASE_URL
-            if app.state.config.RAG_EMBEDDING_ENGINE == "ollama"
-            else app.state.config.RAG_AZURE_OPENAI_BASE_URL
-        )
-    ),
-    key=(
-        app.state.config.RAG_OPENAI_API_KEY
-        if app.state.config.RAG_EMBEDDING_ENGINE == "openai"
-        else (
-            app.state.config.RAG_OLLAMA_API_KEY
-            if app.state.config.RAG_EMBEDDING_ENGINE == "ollama"
-            else app.state.config.RAG_AZURE_OPENAI_API_KEY
-        )
-    ),
-    embedding_batch_size=app.state.config.RAG_EMBEDDING_BATCH_SIZE,
-    azure_api_version=(
-        app.state.config.RAG_AZURE_OPENAI_API_VERSION
-        if app.state.config.RAG_EMBEDDING_ENGINE == "azure_openai"
-        else None
-    ),
-    enable_async=app.state.config.ENABLE_ASYNC_EMBEDDING,
-)
-
-app.state.RERANKING_FUNCTION = get_reranking_function(
-    app.state.config.RAG_RERANKING_ENGINE,
-    app.state.config.RAG_RERANKING_MODEL,
-    reranking_function=app.state.rf,
-)
+        log.info("RAG models loaded and functions initialized")
+    except Exception as e:
+        log.error(f"Error loading RAG models in background: {e}")
+        # 保持默认值，不影响应用启动
 
 ########################################
 #

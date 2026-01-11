@@ -1,0 +1,371 @@
+# OpenWebUI 跨平台客户端 - 开发进度
+
+> **说明**: 本文档用于 AI Coding 助手了解项目进度和技术细节，在处理相关任务时请参考此文档。
+
+## 已完成的工作
+
+### 第一阶段：基础架构搭建 ✅
+
+#### 1.1 Tauri 桌面端项目结构
+- **目录**: `apps/desktop/src-tauri/`
+- **文件**:
+  - `Cargo.toml` - Rust 项目配置，包含所有必需依赖
+  - `src/main.rs` - Tauri 主入口，注册所有命令
+  - `src/backend.rs` - Python 后端进程管理（启动、停止、健康检查）
+  - `src/download.rs` - 下载管理器（多源支持、断点续传、代理支持）
+  - `src/instances.rs` - 多实例管理（CRUD、状态检查）
+  - `src/tray.rs` - 系统托盘集成（占位符）
+  - `src/updater.rs` - 自动更新机制（占位符）
+  - `build.rs` - 构建脚本
+  - `tauri.conf.json` - Tauri 配置
+  - `resources/mirrors.json` - 镜像源配置（国内 CDN + GitHub）
+  - `icons/README.md` - 图标说明文档
+
+#### 1.2 共享包
+- **目录**: `packages/shared/`
+- **文件**:
+  - `src/constants/platforms.ts` - 平台检测工具
+  - `src/types/instance.ts` - 实例类型定义
+  - `src/utils/api.ts` - 平台感知的 API 调用类
+  - `package.json` - 共享包配置
+
+#### 1.3 现有文件修改
+- `src/lib/constants.ts`
+  - 添加 `PLATFORM` 对象（isDesktop、isMobile、isWeb）
+  - 修改 URL 配置逻辑，支持桌面端本地后端
+
+- `src/lib/stores/index.ts`
+  - 添加 `isDesktop`、`isMobile`、`platform` 状态
+  - 添加客户端特定状态（instances、currentInstance、backendStatus、downloadProgress）
+
+### 第二阶段：安装向导前端 ✅
+
+#### 2.1 安装向导主页面
+- **文件**: `src/routes/setup/+page.svelte`
+- **功能**: 管理安装向导的步骤流程
+
+#### 2.2 安装向导组件
+- **目录**: `src/routes/setup/components/`
+- **组件**:
+  - `ModeSelector.svelte` - 模式选择（本地/远程）
+  - `MirrorConfig.svelte` - 镜像源配置
+  - `DownloadManager.svelte` - 组件下载管理器
+  - `ProgressScreen.svelte` - 安装进度显示
+  - `CompletionScreen.svelte` - 完成页面
+
+### 第三阶段：项目配置 ✅
+
+#### 3.1 package.json 更新
+- 添加 Tauri CLI 脚本：
+  - `tauri:dev` - 启动开发模式
+  - `tauri:build` - 构建生产版本
+  - `tauri:build:debug` - 构建调试版本
+- 添加依赖：
+  - `@tauri-apps/api` - Tauri API
+  - `@tauri-apps/cli` - Tauri CLI
+
+### 第四阶段：Tauri v2 升级与环境配置 ✅
+
+#### 4.1 Tauri v2 升级
+- 从 Tauri v1.5 升级到 Tauri v2.9.6
+- 更新 `Cargo.toml` 使用 Tauri v2 依赖
+- 重写 `tauri.conf.json` 以符合 v2 格式
+- 移除插件配置以避免序列化错误
+
+#### 4.2 Windows 开发环境配置
+- 安装 Visual Studio Build Tools 2022
+- 配置 Rust 编译环境（MSVC 工具链）
+- 解决 Windows 链接器问题
+
+#### 4.3 应用图标配置
+- 创建 `apps/desktop/src-tauri/icons/` 目录
+- 从现有 favicon 资源生成各平台图标：
+  - `icon.ico` - Windows 图标
+  - `32x32.png`, `128x128.png`, `128x128@2x.png` - Linux 图标
+  - `icon.icns` - macOS 图标（占位符）
+
+#### 4.4 平台检测修复
+- 修复 Tauri v2 平台检测逻辑
+- 使用 `__TAURI_INTERNALS__` 替代旧的 `__TAURI__` 对象
+- 更新 `src/lib/constants.ts` 中的平台检测代码
+
+#### 4.5 成功启动开发环境
+- ✅ Tauri 客户端窗口成功打开
+- ✅ Vite 开发服务器运行在 http://localhost:5173
+- ✅ 热模块替换（HMR）正常工作
+- ✅ 前端页面正常加载
+- ✅ 平台检测正确识别桌面环境
+
+**解决的关键问题**:
+1. ✅ Visual Studio Build Tools 缺失导致的链接错误
+2. ✅ Tauri v1 配置中的 URI 通配符错误
+3. ✅ 图标文件缺失导致构建失败
+4. ✅ `BackendState` 私有类型错误
+5. ✅ 缺少 Manager trait 导入
+6. ✅ 插件配置序列化错误
+7. ✅ `__TAURI__` 未定义的平台检测错误
+
+### 第五阶段：Tauri 命令集成与平台 UI ✅
+
+#### 5.1 Tauri API 封装
+- **文件**: `src/lib/utils/tauri.ts`
+- **功能**:
+  - Tauri 可用性检测 (`isTauriAvailable`)
+  - 安全的命令调用包装器 (`invoke`)
+  - 类型化的后端管理命令 (`backendCommands`)
+  - 类型化的下载管理命令 (`downloadCommands`)
+  - 类型化的实例管理命令 (`instanceCommands`)
+
+#### 5.2 安装向导 Tauri 集成
+- **修改文件**:
+  - `src/routes/setup/+page.svelte` - 添加后端启动逻辑
+  - `src/routes/setup/components/DownloadManager.svelte` - 集成下载命令
+  - `src/routes/setup/components/ProgressScreen.svelte` - 支持外部状态传入
+- **功能**:
+  - 下载完成后自动调用后端启动命令
+  - 实时检查后端运行状态
+  - 显示详细的安装进度和错误信息
+  - 非 Tauri 环境自动降级到模拟模式
+
+#### 5.3 平台特定 UI 组件
+- **目录**: `src/lib/components/DesktopOnly/`
+- **组件**:
+  - `DesktopOnly.svelte` - 平台检测包装器，仅在桌面端渲染内容
+  - `DesktopNav.svelte` - 桌面端专用导航栏，包含实例管理等桌面特有功能
+  - `DesktopStatusbar.svelte` - 桌面端状态栏，显示后端状态并控制启动/停止
+  - `index.ts` - 组件导出索引
+
+#### 5.4 Tauri 集成测试页面
+- **文件**: `src/routes/test-tauri/+page.svelte`, `src/routes/test-tauri/+layout.svelte`
+- **功能**:
+  - 实时显示平台检测信息（isDesktop、isMobile、isWeb）
+  - 测试 Tauri 可用性
+  - 测试后端状态检查
+  - 测试后端启动/停止命令
+  - 显示详细的命令执行结果和错误信息
+  - 可视化后端运行状态
+- **注意**: 创建了独立布局以绕过根布局的后端检查，确保在后端未运行时也能访问测试页面
+
+#### 5.5 安装向导布局修复
+- **文件**: `src/routes/setup/+layout.svelte`
+- **修复**: 创建独立布局以绕过根布局的后端配置检查，确保用户可以在没有后端的情况下访问安装向导
+
+#### 5.6 根布局路由白名单与侧边栏集成
+- **文件**: `src/routes/+layout.svelte`
+- **修改**:
+  - 添加路由白名单，跳过 `/setup` 和 `/test-tauri` 的后端检查
+  - 导入 `PLATFORM` 和 `dev` 用于条件渲染
+  - 条件渲染侧边栏：Tauri 客户端显示 TauriSidebar，Electron 显示 AppSidebar
+  - 移除右上角调试导航（已被 TauriSidebar 替代）
+- **功能**:
+  - 允许在没有后端的情况下访问白名单路由
+  - 根据平台自动选择合适的侧边栏组件
+
+#### 5.7 Tauri 侧边栏组件
+- **文件**: `src/lib/components/DesktopOnly/TauriSidebar.svelte`
+- **功能**:
+  - 复刻 Electron AppSidebar 的视觉风格
+  - 对话/主页按钮（导航到 `/`）
+  - 后端状态指示灯（实时显示运行状态，带动画效果）
+  - 安装向导按钮（导航到 `/setup`）
+  - 测试页面按钮（仅开发模式显示，导航到 `/test-tauri`）
+  - 自动检测当前路由并高亮选中项
+  - 使用 Tooltip 组件显示按钮提示
+- **样式**: 与 Electron AppSidebar 保持一致，使用相同的 Tailwind 类和视觉效果
+
+### 第六阶段：后端进程管理实现 ✅
+
+#### 6.1 后端进程管理模块完善
+- **文件**: `apps/desktop/src-tauri/src/backend.rs`
+- **修改**:
+  - 修复 `BackendState` 可见性问题，添加 `new()` 构造函数
+  - 移除对 `sysinfo` crate 的依赖，使用系统命令进行进程检查
+  - 实现 `is_process_running` 函数：
+    - Windows: 使用 `tasklist` 命令检查进程
+    - Unix: 使用 `ps` 命令检查进程
+  - 修复 `stop_backend` 函数的可变借用问题
+  - 修复 `main.rs` 中的 `BackendState` 初始化
+
+#### 6.2 依赖项优化
+- **文件**: `apps/desktop/src-tauri/Cargo.toml`
+- **修改**:
+  - 移除未使用的 `sysinfo` 依赖
+  - 保留 Windows 特定依赖用于进程管理
+
+#### 6.3 编译成功
+- ✅ Rust 代码成功编译，仅有一个未使用结构警告
+- ✅ 所有 Tauri 命令正确注册
+- ✅ 跨平台进程管理实现完成
+
+**实现的功能**:
+- `start_backend`: 启动 Python 后端进程，查找可用端口，保存进程状态
+- `stop_backend`: 停止后端进程，支持 Windows 和 Unix 平台
+- `check_backend_status`: 检查后端运行状态，返回端口和 PID
+- `get_backend_logs`: 获取后端日志（预留接口）
+- `find_python_executable`: 自动检测系统中的 Python 3.10+ 安装
+
+### 第七阶段：下载管理器实现 ✅
+
+#### 7.1 下载管理器核心功能
+- **文件**: `apps/desktop/src-tauri/src/download.rs`
+- **实现的功能**:
+  - 多文件下载支持，支持必需组件和可选组件
+  - 镜像源支持（自动替换 URL 域名到镜像源）
+  - HTTP/HTTPS 代理支持
+  - 实时下载进度上报（当前字节、总字节、速度、百分比）
+  - 下载状态事件（download-status、download-progress、download-complete）
+  - 自动创建下载目录（用户下载目录/open-webui）
+  - 下载错误处理和必需组件检查
+  - 下载取消功能（预留）
+  - 获取下载目录路径
+
+#### 7.2 依赖项添加
+- **文件**: `apps/desktop/src-tauri/Cargo.toml`
+- **新增依赖**:
+  - `directories = "5.0"` - 获取用户目录
+  - `url = "2.5"` - URL 解析和操作
+  - `futures-util = "0.3"` - 异步流处理
+
+#### 7.3 前端下载管理器集成
+- **文件**: `src/routes/setup/components/DownloadManager.svelte`
+- **修改**:
+  - 添加 Tauri 事件监听器（onMount/onDestroy 生命周期）
+  - 实时接收下载进度更新
+  - 实时更新下载速度显示
+  - 下载完成后自动触发回调
+  - 非 Tauri 环境自动降级到模拟模式
+
+#### 7.4 Tauri API 增强
+- **文件**: `src/lib/utils/tauri.ts`
+- **新增功能**:
+  - `downloadCommands.cancel` - 取消下载命令
+  - `downloadCommands.getDir` - 获取下载目录路径
+  - `listenDownloadProgress` - 监听下载进度事件
+  - `listenDownloadStatus` - 监听下载状态事件
+  - `listenDownloadComplete` - 监听下载完成事件
+  - `DownloadProgress.percentage` - 添加百分比字段
+
+#### 7.5 命令注册
+- **文件**: `apps/desktop/src-tauri/src/main.rs`
+- **新增命令**:
+  - `download::cancel_download`
+  - `download::get_download_dir_path`
+
+### 第八阶段：平台适配与后端优化 ✅
+
+#### 8.1 后端启动性能优化
+- **文件**: `backend/open_webui/main.py`
+- **修改**:
+  - 实现异步 RAG 模型加载（`load_rag_models_async`）
+  - 在应用启动时异步加载 embedding 和 reranking 函数
+  - 避免阻塞应用启动，提升用户体验
+  - 添加详细的加载日志
+
+#### 8.2 插件依赖异步安装
+- **文件**: `backend/open_webui/utils/plugin.py`
+- **新增**:
+  - `install_tool_and_function_dependencies_async()` - 异步版本的依赖安装
+  - 在后台线程中执行依赖安装
+  - 允许应用立即启动，不等待安装完成
+
+#### 8.3 静态资源清理
+- **删除**: `backend/open_webui/static/` 目录下的所有静态文件
+  - 图标文件（favicon、apple-touch-icon、splash 等）
+  - 配置文件（site.webmanifest、loader.js、custom.css）
+  - 资源文件（logo.png、user.png、user-import.csv）
+- **原因**: 静态资源已迁移到前端，后端不再需要维护
+
+#### 8.4 平台检测与远程模式支持
+- **文件**: `src/lib/constants.ts`
+- **新增**:
+  - `PLATFORM` 对象 - 可靠的平台检测（Tauri 2.x 兼容）
+  - `getBackendBaseUrl()` - 运行时获取后端 URL
+  - `getBackendApiBaseUrl()` - 运行时获取 API URL
+  - `getAuthenticatedImageUrl()` - 带认证的图片 URL（支持远程模式 Basic Auth）
+- **功能**:
+  - 支持 `window.REMOTE_BACKEND_URL` 全局配置
+  - 支持 `window.REMOTE_BACKEND_AUTH` 认证配置
+  - 自动适配桌面端本地后端（127.0.0.1:8080）
+
+#### 8.5 根布局增强（Tauri 集成）
+- **文件**: `src/routes/+layout.svelte`
+- **新增**:
+  - Tauri IPC 代理 - 通过 Rust 路由后端请求，绕过 CORS
+  - 后端加载状态管理（`backendLoading`）
+  - 远程模式 Socket.io 连接支持
+  - Basic Auth 集成到 WebSocket 认证
+  - 路由白名单（`/setup`、`/test-tauri` 跳过后端检查）
+- **功能**:
+  - 桌面端使用 TauriSidebar，Web 端使用 AppSidebar
+  - 自动检测远程模式并使用配置的 URL
+  - 支持远程模式的图片认证
+
+#### 8.6 新增工具与配置
+- **新增目录/文件**:
+  - `src/lib/actions/` - Svelte actions（待实现）
+  - `src/lib/components/DesktopOnly/` - 桌面端专用组件
+    - `TauriSidebar.svelte` - Tauri 侧边栏
+    - `DesktopOnly.svelte` - 平台包装器
+  - `src/lib/stores/backendUrl.ts` - 后端 URL 状态管理
+  - `src/lib/utils/backend-health.ts` - 后端健康检查工具
+  - `src/lib/utils/tauri.ts` - Tauri API 封装（已存在，此阶段增强）
+  - `src/routes/setup/` - 安装向导完整页面
+  - `src/routes/test-tauri/` - Tauri 集成测试页面
+  - `static/setup.html` - 安装向导静态页面
+
+#### 8.7 组件平台适配
+- **修改文件**: 大量前端组件适配平台检测
+- **适配内容**:
+  - 使用 `PLATFORM.isDesktop` 替代硬编码判断
+  - 使用 `getBackendBaseUrl()` 替代静态 URL
+  - ProfileImage 组件使用 `getAuthenticatedImageUrl()`
+  - 条件渲染桌面端特定功能
+
+#### 8.8 Vite 配置更新
+- **文件**: `vite.config.ts`
+- **新增**:
+  - `server.fs.allow` 配置 - 允许访问上级目录的静态文件
+  - 支持 Tauri 环境下的静态资源服务
+
+#### 8.9 .gitignore 更新
+- **新增**:
+  - `nul` - Windows 错误文件
+  - `*.exe` - 可执行文件（如构建工具安装程序）
+
+#### 8.10 包管理器配置
+- **文件**: `pnpm-lock.yaml` - 添加 pnpm 锁文件
+- **说明**: 项目使用 pnpm 作为包管理器
+
+## 下一步工作
+
+### 短期目标
+1. **测试整体功能** ⏳
+   - 启动 Tauri 开发环境
+   - 测试后端启动/停止命令
+   - 测试下载功能（需要实际下载源）
+   - 测试安装向导完整流程
+
+### 中期目标
+1. **创建 Python 后端打包脚本**
+   - `scripts/build-backend.sh`
+   - PyInstaller 配置
+
+2. **创建构建脚本**
+   - `scripts/build-desktop.sh`
+   - `scripts/release.sh`
+
+3. **测试安装向导**
+   - 本地模式流程
+   - 远程模式流程
+
+### 长期目标
+1. **移动端支持**（Capacitor）
+2. **CI/CD 配置**（GitHub Actions）
+3. **文档完善**
+
+## 技术栈
+
+- **桌面端**: Tauri + SvelteKit + Rust
+- **移动端**: Capacitor
+- **包管理**: pnpm
+- **后端**: PyInstaller 打包的 Python FastAPI

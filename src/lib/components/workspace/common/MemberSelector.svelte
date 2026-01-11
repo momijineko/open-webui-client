@@ -4,7 +4,7 @@
 
 	const i18n = getContext('i18n');
 
-	import { user as _user } from '$lib/stores';
+	import { user as _user, runtimeApiBaseUrl } from '$lib/stores';
 	import { getUserById, searchUsers } from '$lib/apis/users';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
@@ -17,6 +17,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Checkbox from '$lib/components/common/Checkbox.svelte';
 	import { getGroups } from '$lib/apis/groups';
+	import { authImage } from '$lib/actions/authImage';
 
 	export let includeGroups = true;
 	export let pagination = false;
@@ -245,8 +246,9 @@
 											<div class="flex items-center gap-2">
 												<ProfilePreview {user} side="right" align="center" sideOffset={6}>
 													<img
+														use:authImage
 														class="rounded-2xl w-6 h-6 object-cover flex-shrink-0"
-														src={`${WEBUI_API_BASE_URL}/users/${user.id}/profile/image`}
+														src={`${$runtimeApiBaseUrl}/users/${user.id}/profile/image`}
 														alt="user"
 													/>
 												</ProfilePreview>

@@ -24,8 +24,9 @@
 	import ChevronUp from '$lib/components/icons/ChevronUp.svelte';
 	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
-	import { config } from '$lib/stores';
+	import { config, runtimeApiBaseUrl } from '$lib/stores';
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import { authImage } from '$lib/actions/authImage';
 
 	let page = 1;
 	let items = null;
@@ -293,9 +294,11 @@
 									<Tooltip content={feedback?.user?.name}>
 										<div class="shrink-0">
 											<img
-												src={`${WEBUI_API_BASE_URL}/users/${feedback.user.id}/profile/image`}
+												use:authImage
+												src={`${$runtimeApiBaseUrl}/users/${feedback.user.id}/profile/image`}
 												alt={feedback?.user?.name}
 												class="size-5 rounded-full object-cover shrink-0"
+												loading="lazy"
 											/>
 										</div>
 									</Tooltip>

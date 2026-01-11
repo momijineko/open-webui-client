@@ -17,7 +17,8 @@
 		temporaryChatEnabled,
 		selectedFolder,
 		chats,
-		currentChatPage
+		currentChatPage,
+		runtimeApiBaseUrl
 	} from '$lib/stores';
 	import { sanitizeResponseContent, extractCurlyBraceWords } from '$lib/utils';
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
@@ -28,6 +29,7 @@
 	import MessageInput from './MessageInput.svelte';
 	import FolderPlaceholder from './Placeholder/FolderPlaceholder.svelte';
 	import FolderTitle from './Placeholder/FolderTitle.svelte';
+	import { authImage } from '$lib/actions/authImage';
 
 	const i18n = getContext('i18n');
 
@@ -122,7 +124,8 @@
 										}}
 									>
 										<img
-											src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}`}
+											use:authImage
+											src={`${$runtimeApiBaseUrl}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}`}
 											class=" size-9 @sm:size-10 rounded-full border-[1px] border-gray-100 dark:border-none"
 											aria-hidden="true"
 											draggable="false"

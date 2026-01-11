@@ -1,6 +1,6 @@
 <script>
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
-	import { WEBUI_NAME, config, user as _user, showSidebar } from '$lib/stores';
+	import { WEBUI_NAME, config, user as _user, showSidebar, runtimeApiBaseUrl } from '$lib/stores';
 	import { goto } from '$app/navigation';
 	import { onMount, getContext } from 'svelte';
 
@@ -21,6 +21,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ProfilePreview from '../Messages/Message/ProfilePreview.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
+	import { authImage } from '$lib/actions/authImage';
 
 	const i18n = getContext('i18n');
 
@@ -210,8 +211,9 @@
 									<div class="flex items-center gap-2">
 										<ProfilePreview {user} side="right" align="center" sideOffset={6}>
 											<img
+												use:authImage
 												class="rounded-2xl w-6 h-6 object-cover flex-shrink-0"
-												src={`${WEBUI_API_BASE_URL}/users/${user.id}/profile/image`}
+												src={`${$runtimeApiBaseUrl}/users/${user.id}/profile/image`}
 												alt="user"
 											/>
 										</ProfilePreview>

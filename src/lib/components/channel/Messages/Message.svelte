@@ -15,7 +15,7 @@
 
 	import { formatDate } from '$lib/utils';
 
-	import { settings, user, shortCodesToEmojis } from '$lib/stores';
+	import { settings, user, shortCodesToEmojis, runtimeApiBaseUrl } from '$lib/stores';
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 	import { getMessageData } from '$lib/apis/channels';
 
@@ -39,6 +39,7 @@
 	import ArrowUpLeftAlt from '$lib/components/icons/ArrowUpLeftAlt.svelte';
 	import PinSlash from '$lib/components/icons/PinSlash.svelte';
 	import Pin from '$lib/components/icons/Pin.svelte';
+	import { authImage } from '$lib/actions/authImage';
 
 	export let className = '';
 
@@ -238,16 +239,18 @@
 				>
 					{#if message?.reply_to_message?.meta?.model_id}
 						<img
-							src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${message.reply_to_message.meta.model_id}`}
+							use:authImage
+							src={`${$runtimeApiBaseUrl}/models/model/profile/image?id=${message.reply_to_message.meta.model_id}`}
 							alt={message.reply_to_message.meta.model_name ??
 								message.reply_to_message.meta.model_id}
 							class="size-4 ml-0.5 rounded-full object-cover"
 						/>
 					{:else}
 						<img
+							use:authImage
 							src={message.reply_to_message.user?.role === 'webhook'
-								? `${WEBUI_API_BASE_URL}/channels/webhooks/${message.reply_to_message.user?.id}/profile/image`
-								: `${WEBUI_API_BASE_URL}/users/${message.reply_to_message.user?.id}/profile/image`}
+								? `${$runtimeApiBaseUrl}/channels/webhooks/${message.reply_to_message.user?.id}/profile/image`
+								: `${$runtimeApiBaseUrl}/users/${message.reply_to_message.user?.id}/profile/image`}
 							alt={message.reply_to_message.user?.name ?? $i18n.t('Unknown User')}
 							class="size-4 ml-0.5 rounded-full object-cover"
 						/>
@@ -275,7 +278,8 @@
 				{#if showUserProfile}
 					{#if message?.meta?.model_id}
 						<img
-							src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${message.meta.model_id}`}
+							use:authImage
+							src={`${$runtimeApiBaseUrl}/models/model/profile/image?id=${message.meta.model_id}`}
 							alt={message.meta.model_name ?? message.meta.model_id}
 							class="size-8 translate-y-1 ml-0.5 object-cover rounded-full"
 						/>
@@ -283,8 +287,8 @@
 						<ProfilePreview user={message.user}>
 							<ProfileImage
 								src={message.user?.role === 'webhook'
-									? `${WEBUI_API_BASE_URL}/channels/webhooks/${message.user?.id}/profile/image`
-									: `${WEBUI_API_BASE_URL}/users/${message.user?.id}/profile/image`}
+									? `${$runtimeApiBaseUrl}/channels/webhooks/${message.user?.id}/profile/image`
+									: `${$runtimeApiBaseUrl}/users/${message.user?.id}/profile/image`}
 								className={'size-8 ml-0.5'}
 							/>
 						</ProfilePreview>

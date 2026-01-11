@@ -17,7 +17,7 @@
 		updateUserTimezone
 	} from '$lib/apis/auths';
 
-	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
+	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL, PLATFORM } from '$lib/constants';
 	import { WEBUI_NAME, config, user, socket } from '$lib/stores';
 
 	import { generateInitialsImage, canvasPixelTest, getUserTimezone } from '$lib/utils';
@@ -142,6 +142,9 @@
 
 	let onboarding = false;
 
+	// Use static path for desktop/Tauri environment
+	const faviconPath = PLATFORM.isDesktop ? '/static/favicon.png' : `${WEBUI_BASE_URL}/static/favicon.png`;
+
 	async function setLogoImage() {
 		await tick();
 		const logo = document.getElementById('logo');
@@ -150,11 +153,12 @@
 			const isDarkMode = document.documentElement.classList.contains('dark');
 
 			if (isDarkMode) {
+				const darkFaviconPath = PLATFORM.isDesktop ? '/static/favicon-dark.png' : `${WEBUI_BASE_URL}/static/favicon-dark.png`;
 				const darkImage = new Image();
-				darkImage.src = `${WEBUI_BASE_URL}/static/favicon-dark.png`;
+				darkImage.src = darkFaviconPath;
 
 				darkImage.onload = () => {
-					logo.src = `${WEBUI_BASE_URL}/static/favicon-dark.png`;
+					logo.src = darkFaviconPath;
 					logo.style.filter = ''; // Ensure no inversion is applied if favicon-dark.png exists
 				};
 
@@ -241,7 +245,7 @@
 									<img
 										id="logo"
 										crossorigin="anonymous"
-										src="{WEBUI_BASE_URL}/static/favicon.png"
+										src={faviconPath}
 										class="size-24 rounded-full"
 										alt=""
 									/>
@@ -587,7 +591,7 @@
 						<img
 							id="logo"
 							crossorigin="anonymous"
-							src="{WEBUI_BASE_URL}/static/favicon.png"
+							src={faviconPath}
 							class=" w-6 rounded-full"
 							alt=""
 						/>

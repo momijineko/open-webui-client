@@ -1,5 +1,5 @@
-import { APP_NAME } from '$lib/constants';
-import { type Writable, writable } from 'svelte/store';
+import { APP_NAME, PLATFORM, WEBUI_BASE_URL } from '$lib/constants';
+import { type Writable, writable, derived, get } from 'svelte/store';
 import type { ModelConfig } from '$lib/apis';
 import type { Banner } from '$lib/types';
 import type { Socket } from 'socket.io-client';
@@ -9,16 +9,35 @@ import emojiShortCodes from '$lib/emoji-shortcodes.json';
 // Backend
 export const WEBUI_NAME = writable(APP_NAME);
 
+// Runtime backend URL store - can be updated for remote mode
+export const runtimeBackendUrl: Writable<string> = writable(WEBUI_BASE_URL);
+
+// Remote auth credentials store
+export const remoteAuth: Writable<{ username: string; password: string } | null> = writable(null);
+
+// Derived API base URL that responds to runtime changes
+export const runtimeApiBaseUrl = derived(runtimeBackendUrl, ($url) => `${$url}/api/v1`);
+
 export const WEBUI_VERSION = writable(null);
 export const WEBUI_DEPLOYMENT_ID = writable(null);
 
 export const config: Writable<Config | undefined> = writable(undefined);
 export const user: Writable<SessionUser | undefined> = writable(undefined);
 
-// Electron App
-export const isApp = writable(false);
+// Desktop/Mobile App - 检测是否在客户端环境中运行
+export const isApp = writable(PLATFORM.isDesktop || PLATFORM.isMobile);
+export const isDesktop = writable(PLATFORM.isDesktop);
+export const isMobile = writable(PLATFORM.isMobile);
+export const platform = writable(PLATFORM.isDesktop ? 'desktop' : PLATFORM.isMobile ? 'mobile' : 'web');
+
 export const appInfo = writable(null);
 export const appData = writable(null);
+
+// 客户端特定状态
+export const instances = writable([]);
+export const currentInstance = writable(null);
+export const backendStatus = writable('stopped');
+export const downloadProgress = writable(null);
 
 // Frontend
 export const MODEL_DOWNLOAD_POOL = writable({});

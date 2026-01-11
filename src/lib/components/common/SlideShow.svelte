@@ -1,12 +1,18 @@
 <script lang="ts">
 	import { WEBUI_BASE_URL } from '$lib/constants';
+	import { PLATFORM } from '$lib/constants';
 	import { onMount } from 'svelte';
 
+	// Use static path for desktop/Tauri environment, WEBUI_BASE_URL for others
+	const getAssetPath = (image: string) => {
+		return PLATFORM.isDesktop ? `/assets/images/${image}` : `${WEBUI_BASE_URL}/assets/images/${image}`;
+	};
+
 	export let imageUrls = [
-		`${WEBUI_BASE_URL}/assets/images/adam.jpg`,
-		`${WEBUI_BASE_URL}/assets/images/galaxy.jpg`,
-		`${WEBUI_BASE_URL}/assets/images/earth.jpg`,
-		`${WEBUI_BASE_URL}/assets/images/space.jpg`
+		getAssetPath('adam.jpg'),
+		getAssetPath('galaxy.jpg'),
+		getAssetPath('earth.jpg'),
+		getAssetPath('space.jpg')
 	];
 	export let duration = 5000;
 	let selectedImageIdx = 0;
