@@ -71,6 +71,9 @@
 				return `已安装后端可执行文件：${installStatus.backend_executable}`;
 			} else if (installStatus.open_webui_installed) {
 				return `已通过 Python 环境安装 OpenWebUI (${installStatus.python_version || '未知版本'})`;
+			} else if (installStatus.installation_path && !installStatus.open_webui_installed) {
+				// 有安装路径但没有 open-webui 包，说明是源码开发模式
+				return `检测到源码开发目录：${installStatus.installation_path}`;
 			}
 		}
 

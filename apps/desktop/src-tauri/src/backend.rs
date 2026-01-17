@@ -27,6 +27,17 @@ pub struct BackendInstallationStatus {
     pub python_version: Option<String>,
     pub open_webui_installed: bool,
     pub backend_executable: Option<String>,
+    pub backend_source: Option<String>, // "bundled" | "user" | "development"
+    pub needs_update: bool,
+    pub current_version: Option<String>,
+    pub bundled_version: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackendVersionInfo {
+    pub current_version: Option<String>,
+    pub bundled_version: Option<String>,
+    pub update_available: bool,
 }
 
 pub struct BackendState(Mutex<Option<BackendProcess>>);
@@ -82,38 +93,37 @@ fn find_backend_directory() -> Option<PathBuf> {
             .unwrap_or_else(|| path.clone())
     }
 
-    // 1. 优先检查应用数据目录中的 backend（打包后的安装位置）
+    // 1. 优先检查用户数据目录（最高优先级，用户修改过的版本）
     if let Some(dirs) = directories::UserDirs::new() {
         let home_dir = dirs.home_dir();
         let app_backend_dir = home_dir.join(".open-webui").join("backend");
         if app_backend_dir.exists() && app_backend_dir.join("open_webui").exists() {
             let normalized = normalize_path(&app_backend_dir);
-            println!("Found backend in app data directory: {:?}", normalized);
+            println!("Found backend in user directory: {:?}", normalized);
             return Some(normalized);
         }
     }
 
-    // 2. 检查可执行文件旁边的 backend 目录（开发环境）
+    // 2. 开发环境：可执行文件旁边或向上查找
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
+            // 检查旁边的 backend
             let backend_path = exe_dir.join("backend");
             if backend_path.exists() && backend_path.join("open_webui").exists() {
                 let normalized = normalize_path(&backend_path);
-                println!("Found backend next to executable: {:?}", normalized);
+                println!("Found backend in development directory: {:?}", normalized);
                 return Some(normalized);
             }
 
-            // 3. 向上查找 backend 目录（开发环境，可能在不同层级）
+            // 向上查找
             let mut search_dir = exe_dir;
-            let max_levels = 6; // 最多向上查找 6 级（开发环境可能需要）
-
-            for _ in 0..max_levels {
+            for _ in 0..6 {
                 if let Some(parent) = search_dir.parent() {
                     search_dir = parent;
                     let backend_path = search_dir.join("backend");
                     if backend_path.exists() && backend_path.join("open_webui").exists() {
                         let normalized = normalize_path(&backend_path);
-                        println!("Found backend by searching up: {:?}", normalized);
+                        println!("Found backend in development directory: {:?}", normalized);
                         return Some(normalized);
                     }
                 }
@@ -121,7 +131,26 @@ fn find_backend_directory() -> Option<PathBuf> {
         }
     }
 
-    // 4. 最后尝试当前工作目录
+    // 3. 最后才检查打包的 resources（作为后备）
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let paths = vec![
+                exe_dir.join("resources").join("backend"),      // Windows
+                exe_dir.join("Resources").join("backend"),      // macOS
+                exe_dir.join("..").join("resources").join("backend"), // Linux
+            ];
+
+            for backend_path in paths {
+                if backend_path.exists() && backend_path.join("open_webui").exists() {
+                    let normalized = normalize_path(&backend_path);
+                    println!("Found backend in bundled resources: {:?}", normalized);
+                    return Some(normalized);
+                }
+            }
+        }
+    }
+
+    // 4. 当前工作目录
     if let Ok(current_dir) = std::env::current_dir() {
         let backend_path = current_dir.join("backend");
         if backend_path.exists() && backend_path.join("open_webui").exists() {
@@ -542,6 +571,7 @@ pub fn check_backend_installation() -> Result<BackendInstallationStatus, String>
     let python_version = get_python_version();
     let open_webui_installed = check_open_webui_installed();
     let backend_executable = check_backend_executable();
+    let backend_dir = find_backend_directory();
 
     // 检查安装路径
     let installation_path = if let Some(exe) = &backend_executable {
@@ -550,6 +580,9 @@ pub fn check_backend_installation() -> Result<BackendInstallationStatus, String>
             .and_then(|p| p.to_str())
             .unwrap_or("")
             .to_string())
+    } else if let Some(ref dir) = backend_dir {
+        // 源码开发模式
+        Some(dir.to_string_lossy().to_string())
     } else if python_available && open_webui_installed {
         // 如果通过 Python 安装，返回 Python 路径
         find_python_executable().ok().map(|_| "Python environment".to_string())
@@ -558,7 +591,17 @@ pub fn check_backend_installation() -> Result<BackendInstallationStatus, String>
     };
 
     // 判断是否已安装
-    let is_installed = backend_executable.is_some() || (python_available && open_webui_installed);
+    // 支持三种模式：
+    // 1. 独立可执行文件
+    // 2. Python 包安装
+    // 3. 源码开发目录 + Python 环境
+    let is_installed = backend_executable.is_some()
+        || (python_available && open_webui_installed)
+        || (backend_dir.is_some() && python_available);
+
+    // 检测后端来源和版本
+    let (backend_source, current_version, bundled_version, needs_update) =
+        detect_backend_source_and_version(&backend_dir);
 
     Ok(BackendInstallationStatus {
         is_installed,
@@ -567,5 +610,372 @@ pub fn check_backend_installation() -> Result<BackendInstallationStatus, String>
         python_version,
         open_webui_installed,
         backend_executable,
+        backend_source,
+        needs_update,
+        current_version,
+        bundled_version,
     })
+}
+
+// 获取后端版本（从 version.txt 或 pyproject.toml）
+fn get_backend_version(backend_dir: &PathBuf) -> Option<String> {
+    // 首先尝试读取 version.txt
+    let version_file = backend_dir.join("version.txt");
+    if version_file.exists() {
+        if let Ok(content) = std::fs::read_to_string(&version_file) {
+            return Some(content.trim().to_string());
+        }
+    }
+
+    // 尝试从 pyproject.toml 读取
+    let pyproject = backend_dir.join("pyproject.toml");
+    if pyproject.exists() {
+        if let Ok(content) = std::fs::read_to_string(&pyproject) {
+            for line in content.lines() {
+                if line.trim().starts_with("version =") {
+                    // 简单解析，实际可能需要更复杂的 TOML 解析
+                    if let Some(v) = line.split('=').nth(1) {
+                        return Some(v.trim().matches('"').collect::<String>());
+                    }
+                }
+            }
+        }
+    }
+
+    None
+}
+
+// 检测后端来源和版本状态
+fn detect_backend_source_and_version(
+    backend_dir: &Option<PathBuf>,
+) -> (Option<String>, Option<String>, Option<String>, bool) {
+    let user_backend_dir = if let Some(dirs) = directories::UserDirs::new() {
+        Some(dirs.home_dir().join(".open-webui").join("backend"))
+    } else {
+        None
+    };
+
+    // 检查打包的后端版本
+    let bundled_version = if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let resource_backend = exe_dir.join("resources").join("backend");
+            if resource_backend.exists() {
+                get_backend_version(&resource_backend)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    match backend_dir {
+        Some(dir) => {
+            // 检查是否是用户数据目录
+            if let Some(ref user_dir) = user_backend_dir {
+                if dir.starts_with(user_dir) {
+                    let current_version = get_backend_version(dir);
+                    let needs_update = if let (Some(current), Some(bundled)) =
+                        (&current_version, &bundled_version)
+                    {
+                        current != bundled
+                    } else {
+                        false
+                    };
+                    return (Some("user".to_string()), current_version, bundled_version, needs_update);
+                }
+            }
+
+            // 检查是否是开发目录（包含 .git）
+            if dir.join(".git").exists() {
+                return (Some("development".to_string()), None, bundled_version, false);
+            }
+
+            // 其他情况认为是打包的后端
+            let current_version = get_backend_version(dir);
+            (Some("bundled".to_string()), current_version, bundled_version, false)
+        }
+        None => (None, None, bundled_version, false),
+    }
+}
+
+// 获取用户数据目录的后端路径
+fn get_user_backend_dir() -> Option<PathBuf> {
+    if let Some(dirs) = directories::UserDirs::new() {
+        Some(dirs.home_dir().join(".open-webui").join("backend"))
+    } else {
+        None
+    }
+}
+
+// 初始化用户后端目录（从打包资源复制）
+#[tauri::command]
+pub fn initialize_user_backend() -> Result<String, String> {
+    let user_backend_dir = get_user_backend_dir()
+        .ok_or("Failed to get user data directory".to_string())?;
+
+    // 查找打包的后端资源
+    let bundled_backend = if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let resource_backend = exe_dir.join("resources").join("backend");
+            if resource_backend.exists() {
+                Some(resource_backend)
+            } else {
+                return Err("Bundled backend not found".to_string());
+            }
+        } else {
+            return Err("Failed to get executable directory".to_string());
+        }
+    } else {
+        return Err("Failed to get executable path".to_string());
+    };
+
+    let bundled_backend = bundled_backend.unwrap();
+
+    // 如果用户目录已存在，先备份
+    if user_backend_dir.exists() {
+        let backup_dir = format!("{}.backup.{}", user_backend_dir.display(), chrono::Utc::now().timestamp());
+        return Err(format!("User backend already exists. Backup at {}", backup_dir));
+    }
+
+    // 创建用户目录
+    std::fs::create_dir_all(&user_backend_dir)
+        .map_err(|e| format!("Failed to create directory: {}", e))?;
+
+    // 复制后端文件
+    copy_dir(&bundled_backend, &user_backend_dir)
+        .map_err(|e| format!("Failed to copy backend: {}", e))?;
+
+    Ok(format!("Backend initialized to {}", user_backend_dir.display()))
+}
+
+// 递归复制目录
+fn copy_dir(from: &PathBuf, to: &PathBuf) -> std::io::Result<()> {
+    if !to.exists() {
+        std::fs::create_dir_all(to)?;
+    }
+
+    for entry in std::fs::read_dir(from)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        let from_path = entry.path();
+        let to_path = to.join(entry.file_name());
+
+        if ty.is_dir() {
+            copy_dir(&from_path, &to_path)?;
+        } else {
+            std::fs::copy(&from_path, &to_path)?;
+        }
+    }
+
+    Ok(())
+}
+
+// 更新用户后端
+#[tauri::command]
+pub fn update_user_backend() -> Result<String, String> {
+    let user_backend_dir = get_user_backend_dir()
+        .ok_or("Failed to get user data directory".to_string())?;
+
+    if !user_backend_dir.exists() {
+        return initialize_user_backend();
+    }
+
+    // 查找打包的后端资源
+    let bundled_backend = if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let resource_backend = exe_dir.join("resources").join("backend");
+            if resource_backend.exists() {
+                Some(resource_backend)
+            } else {
+                return Err("Bundled backend not found".to_string());
+            }
+        } else {
+            return Err("Failed to get executable directory".to_string());
+        }
+    } else {
+        return Err("Failed to get executable path".to_string());
+    };
+
+    let bundled_backend = bundled_backend.unwrap();
+
+    // 备份现有后端
+    let backup_dir = format!("{}.backup.{}", user_backend_dir.display(), chrono::Utc::now().timestamp());
+    std::fs::rename(&user_backend_dir, &backup_dir)
+        .map_err(|e| format!("Failed to backup existing backend: {}", e))?;
+
+    // 复制新版本
+    copy_dir(&bundled_backend, &user_backend_dir)
+        .map_err(|e| format!("Failed to copy new backend: {}", e))?;
+
+    Ok(format!("Backend updated. Backup at {}", backup_dir))
+}
+
+// 检查后端版本信息
+#[tauri::command]
+pub fn get_backend_version_info() -> Result<BackendVersionInfo, String> {
+    let backend_dir = find_backend_directory();
+    let bundled_version = if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let resource_backend = exe_dir.join("resources").join("backend");
+            if resource_backend.exists() {
+                get_backend_version(&resource_backend)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    let current_version = backend_dir.as_ref().and_then(|dir| get_backend_version(dir));
+    let update_available = if let (Some(current), Some(bundled)) = (&current_version, &bundled_version) {
+        current != bundled
+    } else {
+        false
+    };
+
+    Ok(BackendVersionInfo {
+        current_version,
+        bundled_version,
+        update_available,
+    })
+}
+
+// 安装后端依赖
+fn install_backend_dependencies(backend_dir: &PathBuf) -> Result<(), String> {
+    let python_cmd = find_python_executable()?;
+
+    // 检查 requirements.txt 是否存在
+    let requirements_file = backend_dir.join("requirements.txt");
+    if !requirements_file.exists() {
+        return Err("requirements.txt not found in backend directory".to_string());
+    }
+
+    println!("Installing backend dependencies from: {:?}", requirements_file);
+
+    // 执行 pip install
+    let output = Command::new(&python_cmd)
+        .args(["-m", "pip", "install", "-r", requirements_file.to_str().unwrap()])
+        .output()
+        .map_err(|e| format!("Failed to run pip install: {}", e))?;
+
+    if output.status.success() {
+        println!("Dependencies installed successfully");
+        Ok(())
+    } else {
+        let error_msg = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Failed to install dependencies: {}", error_msg))
+    }
+}
+
+// 获取打包的后端版本
+fn get_bundled_backend_version() -> Option<String> {
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let resource_backend = exe_dir.join("resources").join("backend");
+            if resource_backend.exists() {
+                return get_backend_version(&resource_backend);
+            }
+        }
+    }
+    None
+}
+
+// 检查并自动更新后端（应用启动时调用）
+#[tauri::command]
+pub fn check_and_auto_update_backend() -> Result<AutoUpdateResult, String> {
+    use crate::config::{load_config, save_config};
+
+    // 1. 加载配置
+    let config = load_config()?;
+
+    // 2. 检查是否是本地模式
+    if config.setup_mode.as_deref() != Some("local") {
+        return Ok(AutoUpdateResult {
+            updated: false,
+            backend_installed: false,
+            message: "Not in local mode, skipping backend check".to_string(),
+        });
+    }
+
+    // 3. 获取打包的后端版本
+    let bundled_version = get_bundled_backend_version()
+        .ok_or("Bundled backend version not found".to_string())?;
+
+    // 4. 检查是否需要更新
+    let needs_update = config.backend_version.as_ref() != Some(&bundled_version);
+
+    if !needs_update {
+        return Ok(AutoUpdateResult {
+            updated: false,
+            backend_installed: true,
+            message: format!("Backend up to date: {}", bundled_version),
+        });
+    }
+
+    println!("Backend update needed: {:?} -> {}", config.backend_version, bundled_version);
+
+    // 5. 执行更新
+    let user_backend_dir = get_user_backend_dir()
+        .ok_or("Failed to get user data directory".to_string())?;
+
+    // 查找打包的后端资源
+    let bundled_backend = if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let resource_backend = exe_dir.join("resources").join("backend");
+            if resource_backend.exists() {
+                Some(resource_backend)
+            } else {
+                return Err("Bundled backend not found".to_string());
+            }
+        } else {
+            return Err("Failed to get executable directory".to_string());
+        }
+    } else {
+        return Err("Failed to get executable path".to_string());
+    };
+
+    let bundled_backend = bundled_backend.unwrap();
+
+    // 删除旧版本（如果存在）
+    if user_backend_dir.exists() {
+        std::fs::remove_dir_all(&user_backend_dir)
+            .map_err(|e| format!("Failed to remove old backend: {}", e))?;
+    }
+
+    // 创建用户目录
+    std::fs::create_dir_all(&user_backend_dir)
+        .map_err(|e| format!("Failed to create directory: {}", e))?;
+
+    // 复制新版本
+    copy_dir(&bundled_backend, &user_backend_dir)
+        .map_err(|e| format!("Failed to copy backend: {}", e))?;
+
+    println!("Backend copied to: {:?}", user_backend_dir);
+
+    // 6. 安装依赖
+    install_backend_dependencies(&user_backend_dir)?;
+
+    // 7. 更新配置文件
+    let mut updated_config = config;
+    updated_config.backend_version = Some(bundled_version.clone());
+    save_config(&updated_config)?;
+
+    Ok(AutoUpdateResult {
+        updated: true,
+        backend_installed: true,
+        message: format!("Backend updated to {}", bundled_version),
+    })
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AutoUpdateResult {
+    pub updated: bool,
+    pub backend_installed: bool,
+    pub message: String,
 }

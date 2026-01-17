@@ -21,6 +21,10 @@ fn main() {
             backend::check_backend_status,
             backend::check_backend_installation,
             backend::get_backend_logs,
+            backend::initialize_user_backend,
+            backend::update_user_backend,
+            backend::get_backend_version_info,
+            backend::check_and_auto_update_backend,
             // Download commands
             download::install_local_backend,
             download::start_download,
@@ -49,6 +53,17 @@ fn main() {
             {
                 let window = app.get_webview_window("main").unwrap();
                 window.open_devtools();
+            }
+
+            // 应用启动时自动检查并更新后端
+            println!("App started, checking backend updates...");
+            match backend::check_and_auto_update_backend() {
+                Ok(result) => {
+                    println!("Backend check result: updated={}, message={}", result.updated, result.message);
+                }
+                Err(e) => {
+                    eprintln!("Backend check failed: {}", e);
+                }
             }
 
             Ok(())

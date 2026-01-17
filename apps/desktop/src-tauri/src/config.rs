@@ -14,6 +14,8 @@ pub struct AppConfig {
     pub remote_username: Option<String>,
     /// For remote mode: password for Basic Auth
     pub remote_password: Option<String>,
+    /// Current backend version (for local mode)
+    pub backend_version: Option<String>,
 }
 
 impl Default for AppConfig {
@@ -24,6 +26,7 @@ impl Default for AppConfig {
             remote_url: None,
             remote_username: None,
             remote_password: None,
+            backend_version: None,
         }
     }
 }
