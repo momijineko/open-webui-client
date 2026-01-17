@@ -7,6 +7,8 @@ mod download;
 mod instances;
 mod proxy;
 mod python_installer;
+mod tray;
+mod updater;
 
 use backend::BackendState;
 use tauri::Manager;
@@ -47,6 +49,11 @@ fn main() {
             // Proxy commands
             proxy::proxy_request,
             proxy::fetch_image,
+            // Updater commands
+            updater::check_for_updates,
+            updater::download_update,
+            updater::install_update,
+            updater::get_app_version,
         ])
         .setup(|app| {
             #[cfg(debug_assertions)]
@@ -54,6 +61,15 @@ fn main() {
                 let window = app.get_webview_window("main").unwrap();
                 window.open_devtools();
             }
+
+            // Initialize system tray
+            match tray::create_tray(app) {
+                Ok(_) => println!("System tray initialized successfully"),
+                Err(e) => eprintln!("Failed to initialize system tray: {}", e),
+            }
+
+            // Start auto-update check in background
+            updater::auto_check_updates(app.handle().clone());
 
             // 应用启动时自动检查并更新后端
             println!("App started, checking backend updates...");

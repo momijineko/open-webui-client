@@ -461,6 +461,96 @@
   - ✅ 依赖检查逻辑完整
   - ⚠️ 需要完整的 Python 环境才能实际运行构建
 
+### 第十二阶段：实际构建测试 ✅
+
+#### 12.1 前端构建验证
+- **构建时间**: 1分50秒
+- **输出目录**: `build/` (使用 adapter-static)
+- **构建大小**: 230MB
+- **包含内容**: _app, assets, pyodide, static, wasm 等
+- **验证结果**: ✅ 成功
+
+#### 12.2 后端构建验证
+- **环境**: 嵌入式 Python 3.11.9
+- **PyInstaller 版本**: 6.18.0
+- **依赖状态**: 所有 155+ 包已安装
+- **构建尝试**: PyInstaller 打包测试
+
+**发现的问题**:
+- `python-magic` 模块在 Windows + PyInstaller 环境下崩溃
+- 该模块来自 `unstructured` 包，依赖系统库 `libmagic`
+- 影响：无法将后端打包为独立的 .exe 文件
+
+**采用的方案**: 方案2 - 不打包后端
+- 直接使用嵌入式 Python 运行后端源代码
+- 与当前 Tauri 架构完全一致
+- 保留完整功能（包括文档解析）
+- 更易于维护和更新
+
+#### 12.3 发布策略调整
+- **前端**: 静态文件打包到 Tauri 应用
+- **后端**: 源代码 + 嵌入式 Python 运行时
+- **分发方式**: 完整的桌面应用安装包
+
+### 第十三阶段：占位符功能实现 ✅
+
+#### 13.1 系统托盘集成
+- **文件**: `apps/desktop/src-tauri/src/tray.rs`
+- **功能**:
+  - 系统托盘图标和菜单
+  - 显示/隐藏窗口
+  - 启动/停止后端
+  - 后端状态显示
+  - 退出应用
+- **菜单项**:
+  - 显示窗口
+  - 隐藏窗口
+  - 启动后端
+  - 停止后端
+  - 后端状态: 运行中/未运行
+  - 退出
+
+#### 13.2 自动更新机制
+- **文件**: `apps/desktop/src-tauri/src/updater.rs`
+- **功能**:
+  - 从 GitHub Releases API 获取最新版本
+  - 使用 semver 进行版本比较
+  - 自动检测平台并匹配下载链接
+  - 实时下载进度报告
+  - 启动时自动检查更新（10秒延迟）
+- **命令**:
+  - `check_for_updates` - 检查更新
+  - `download_update` - 下载更新
+  - `install_update` - 安装更新（打开下载页面）
+  - `get_app_version` - 获取当前版本
+- **配置**:
+  - `UpdateConfig` - 可配置仓库地址和预发布版本检查
+  - 默认仓库: `open-webui/open-webui`
+- **事件**:
+  - `update-status` - 更新状态变化
+  - `update-progress` - 下载进度 (0-100)
+  - `update-available` - 有新版本可用（包含 UpdateInfo）
+  - `update-installing` - 正在安装更新
+- **平台支持**:
+  - Windows: windows-x64, windows-arm64
+  - macOS: macos-x64, macos-arm64
+  - Linux: linux-x64, linux-arm64
+- **依赖**:
+  - `semver = "1.0"` - 版本比较
+
+#### 13.3 macOS 图标
+- **文件**: `apps/desktop/src-tauri/icons/icon.icns`
+- **状态**: 已存在（Tauri 构建时会自动处理格式转换）
+
+#### 13.4 集成更新
+- **文件**: `apps/desktop/src-tauri/src/main.rs`
+- **更新**:
+  - 添加 `tray` 和 `updater` 模块
+  - 注册 updater 命令
+  - 在 setup 中初始化系统托盘
+  - 启动时开始自动更新检查
+- **Cargo.toml**: 添加 `tray-icon` feature
+
 #### 11.2 桌面应用构建脚本验证
 - **验证项目**: `scripts/build-desktop.bat` 和 `scripts/build-desktop.sh`
 - **验证结果**:
@@ -488,15 +578,15 @@
   - ✅ 平台特定的安装程序处理（MSI/NSIS/DEB/AppImage/DMG）
   - ✅ 自动生成 README 文档
 
-#### 11.5 构建环境状态总结
+#### 11.5 构建环境状态总结（更新）
 - **操作系统**: Windows (Git Bash 环境)
 - **Node.js**: v24.12.0 ✅
 - **pnpm**: 10.26.2 ✅
 - **Rust/Cargo**: 1.92.0 ✅
 - **Python (嵌入版)**: 3.11.9 ✅
 - **Tauri**: v2.9.6 ✅
-- **前端构建**: 需要运行（.output 目录不存在）
-- **后端构建**: 需要 Python 环境支持
+- **前端构建**: ✅ 已验证（1分50秒，230MB）
+- **后端运行**: ✅ 源码模式（嵌入式 Python）
 
 ## 下一步工作
 

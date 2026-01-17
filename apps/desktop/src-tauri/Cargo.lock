@@ -2693,6 +2693,7 @@ dependencies = [
  "notify-rust",
  "open",
  "reqwest 0.11.27",
+ "semver",
  "serde",
  "serde_json",
  "tar",
