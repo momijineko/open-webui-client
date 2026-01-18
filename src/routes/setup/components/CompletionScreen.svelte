@@ -13,40 +13,40 @@
 		<div class="completion-content">
 			<div class="success-icon">✓</div>
 
-			<h1>设置完成！</h1>
+			<h1>Setup Complete!</h1>
 
 			{#if mode === 'local'}
 				<p class="description">
-					OpenWebUI 已成功安装到您的计算机。您现在可以开始使用本地 AI
-					助手，所有数据都保存在您的设备上。
+					OpenWebUI has been successfully installed on your computer. You can now start using the local AI
+					assistant with all data stored on your device.
 				</p>
 
 				<div class="info-box">
-					<h3>🎉 本地模式已启用</h3>
+					<h3>🎉 Local Mode Enabled</h3>
 					<ul>
-						<li>✓ 后端服务已启动</li>
-						<li>✓ 数据目录已配置</li>
-						<li>✓ 所有功能可用</li>
+						<li>✓ Backend service started</li>
+						<li>✓ Data directory configured</li>
+						<li>✓ All features available</li>
 					</ul>
 				</div>
 			{:else}
 				<p class="description">
-					您已选择远程模式。接下来需要配置您要连接的 OpenWebUI 服务器地址。
+					You have selected remote mode. Next, you need to configure the OpenWebUI server address you want to connect to.
 				</p>
 
 				<div class="info-box">
-					<h3>☁️ 远程模式已启用</h3>
+					<h3>Remote Mode Enabled</h3>
 					<ul>
-						<li>• 连接到现有服务器</li>
-						<li>• 跨设备同步对话</li>
-						<li>• 使用服务器端的模型和配置</li>
+						<li>• Connect to existing server</li>
+						<li>• Sync conversations across devices</li>
+						<li>• Use server-side models and configuration</li>
 					</ul>
 				</div>
 			{/if}
 
 			<div class="actions">
 				<button class="btn-primary" on:click={handleComplete}>
-					{mode === 'local' ? '开始使用' : '前往设置'}
+					{mode === 'local' ? 'Get Started' : 'Go to Settings'}
 				</button>
 			</div>
 		</div>

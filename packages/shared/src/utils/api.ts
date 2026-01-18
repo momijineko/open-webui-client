@@ -1,11 +1,11 @@
 /**
- * API 调用工具 - 适配不同平台
+ * API utility for different platforms
  */
 
 import { getApiBaseUrl, getWebSocketUrl, getPlatform } from '../constants/platforms';
 
 /**
- * 平台感知的 API 调用类
+ * Platform-aware API class
  */
 export class PlatformAPI {
 	private baseUrl: string = '';
@@ -19,7 +19,7 @@ export class PlatformAPI {
 	}
 
 	/**
-	 * 发送 API 请求
+ * Send API request
 	 */
 	async request(endpoint: string, options?: RequestInit): Promise<Response> {
 		if (!this.baseUrl) {
@@ -42,7 +42,7 @@ export class PlatformAPI {
 	}
 
 	/**
-	 * GET 请求
+ * GET request
 	 */
 	async get<T = any>(endpoint: string): Promise<T> {
 		const response = await this.request(endpoint, { method: 'GET' });
@@ -53,7 +53,7 @@ export class PlatformAPI {
 	}
 
 	/**
-	 * POST 请求
+ * POST request
 	 */
 	async post<T = any>(endpoint: string, data?: any): Promise<T> {
 		const response = await this.request(endpoint, {
@@ -67,7 +67,7 @@ export class PlatformAPI {
 	}
 
 	/**
-	 * PUT 请求
+ * PUT request
 	 */
 	async put<T = any>(endpoint: string, data?: any): Promise<T> {
 		const response = await this.request(endpoint, {
@@ -81,7 +81,7 @@ export class PlatformAPI {
 	}
 
 	/**
-	 * DELETE 请求
+ * DELETE request
 	 */
 	async delete<T = any>(endpoint: string): Promise<T> {
 		const response = await this.request(endpoint, { method: 'DELETE' });
@@ -92,7 +92,7 @@ export class PlatformAPI {
 	}
 
 	/**
-	 * 获取 WebSocket URL
+ * Get WebSocket URL
 	 */
 	async getWebSocketUrl(): Promise<string> {
 		if (!this.wsUrl) {
@@ -102,46 +102,46 @@ export class PlatformAPI {
 	}
 
 	/**
-	 * 获取基础 URL
+ * Get base URL
 	 */
 	getBaseUrl(): string {
 		return this.baseUrl;
 	}
 
 	/**
-	 * 获取当前平台
+ * Get current platform
 	 */
 	getPlatform(): 'desktop' | 'mobile' | 'web' {
 		return getPlatform();
 	}
 
 	/**
-	 * 是否为桌面端
+ * Is desktop
 	 */
 	isDesktop(): boolean {
 		return getPlatform() === 'desktop';
 	}
 
 	/**
-	 * 是否为移动端
+ * Is mobile
 	 */
 	isMobile(): boolean {
 		return getPlatform() === 'mobile';
 	}
 
 	/**
-	 * 是否为 Web 端
+ * Is web
 	 */
 	isWeb(): boolean {
 		return getPlatform() === 'web';
 	}
 }
 
-// 创建全局实例
+// Create global instance
 export const platformAPI = new PlatformAPI();
 
 /**
- * 初始化 API（在应用启动时调用）
+ * Initialize API (called on app startup)
  */
 export async function initAPI() {
 	await platformAPI.init();

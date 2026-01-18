@@ -210,7 +210,7 @@ export async function listenDownloadProgress(
 	try {
 		const { listen } = await import('@tauri-apps/api/event');
 		const unlisten = await listen('download-progress', (event) => {
-			// 兼容两种类型: DownloadProgress 和 PythonInstallProgress
+			// Compatible with both types: DownloadProgress and PythonInstallProgress
 			const payload = event.payload as any;
 			const progress: DownloadProgress = {
 				current: payload.current || 0,

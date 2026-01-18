@@ -4,7 +4,7 @@
 	import { tauriCommands, isTauriAvailable, type BackendStatus } from '$lib/utils/tauri';
 
 	let backendStatus: BackendStatus | null = null;
-	let statusMessage = '点击按钮检查状态';
+	let statusMessage = 'Click button to check status';
 	let isLoading = false;
 
 	// Auto test state
@@ -14,25 +14,25 @@
 
 	const testTauriAvailability = () => {
 		if (isTauriAvailable()) {
-			statusMessage = '✅ Tauri 可用';
+			statusMessage = '✅ Tauri available';
 		} else {
-			statusMessage = '❌ Tauri 不可用';
+			statusMessage = '❌ Tauri unavailable';
 		}
 	};
 
 	const checkPlatform = () => {
-		statusMessage = `平台信息: ${JSON.stringify(PLATFORM, null, 2)}`;
+		statusMessage = `Platform info: ${JSON.stringify(PLATFORM, null, 2)}`;
 	};
 
 	const testBackendStatus = async () => {
 		isLoading = true;
-		statusMessage = '正在检查后端状态...';
+		statusMessage = 'Checking backend status...';
 
 		try {
 			backendStatus = await tauriCommands.backend.checkStatus();
-			statusMessage = `后端状态: ${JSON.stringify(backendStatus, null, 2)}`;
+			statusMessage = `Backend status: ${JSON.stringify(backendStatus, null, 2)}`;
 		} catch (error) {
-			statusMessage = `错误: ${(error as Error).message}`;
+			statusMessage = `Error: ${(error as Error).message}`;
 			console.error('Backend status check failed:', error);
 		} finally {
 			isLoading = false;
@@ -41,13 +41,13 @@
 
 	const testBackendStart = async () => {
 		isLoading = true;
-		statusMessage = '正在启动后端...';
+		statusMessage = 'Starting backend...';
 
 		try {
 			const result = await tauriCommands.backend.start();
-			statusMessage = `启动结果: ${result}`;
+			statusMessage = `Start result: ${result}`;
 		} catch (error) {
-			statusMessage = `错误: ${(error as Error).message}`;
+			statusMessage = `Error: ${(error as Error).message}`;
 			console.error('Backend start failed:', error);
 		} finally {
 			isLoading = false;
@@ -56,13 +56,13 @@
 
 	const testBackendStop = async () => {
 		isLoading = true;
-		statusMessage = '正在停止后端...';
+		statusMessage = 'Stopping backend...';
 
 		try {
 			const result = await tauriCommands.backend.stop();
-			statusMessage = `停止结果: ${result}`;
+			statusMessage = `Stop result: ${result}`;
 		} catch (error) {
-			statusMessage = `错误: ${(error as Error).message}`;
+			statusMessage = `Error: ${(error as Error).message}`;
 			console.error('Backend stop failed:', error);
 		} finally {
 			isLoading = false;
@@ -77,79 +77,79 @@
 
 		const tests = [
 			{
-				name: 'Tauri 可用性检测',
+				name: 'Tauri availability check',
 				run: async () => {
 					const available = isTauriAvailable();
-					return { pass: available, message: available ? 'Tauri 可用' : 'Tauri 不可用（非桌面环境）' };
+					return { pass: available, message: available ? 'Tauri available' : 'Tauri unavailable (not desktop environment)' };
 				}
 			},
 			{
-				name: '平台检测',
+				name: 'Platform detection',
 				run: async () => {
 					return { pass: true, message: `Desktop: ${PLATFORM.isDesktop}, Mobile: ${PLATFORM.isMobile}, Web: ${PLATFORM.isWeb}` };
 				}
 			},
 			{
-				name: '后端状态检查',
+				name: 'Backend status check',
 				run: async () => {
 					try {
 						const status = await tauriCommands.backend.checkStatus();
 						backendStatus = status;
-						return { pass: true, message: `运行中: ${status.is_running}, 端口: ${status.port || 'N/A'}` };
+						return { pass: true, message: `Running: ${status.is_running}, Port: ${status.port || 'N/A'}` };
 					} catch (error) {
-						return { pass: false, message: `错误: ${(error as Error).message}` };
+						return { pass: false, message: `Error: ${(error as Error).message}` };
 					}
 				}
 			},
 			{
-				name: '获取应用配置',
+				name: 'Get app config',
 				run: async () => {
 					try {
 						const config = await tauriCommands.config.get();
-						return { pass: true, message: `安装完成: ${config.setupCompleted || false}` };
+						return { pass: true, message: `Setup completed: ${config.setupCompleted || false}` };
 					} catch (error) {
-						return { pass: false, message: `错误: ${(error as Error).message}` };
+						return { pass: false, message: `Error: ${(error as Error).message}` };
 					}
 				}
 			},
 			{
-				name: '获取下载目录',
+				name: 'Get download directory',
 				run: async () => {
 					try {
 						const dir = await tauriCommands.download.getDir();
-						return { pass: true, message: `目录: ${dir}` };
+						return { pass: true, message: `Directory: ${dir}` };
 					} catch (error) {
-						return { pass: false, message: `错误: ${(error as Error).message}` };
+						return { pass: false, message: `Error: ${(error as Error).message}` };
 					}
 				}
 			},
 			{
-				name: '检查后端安装',
+				name: 'Check backend installation',
 				run: async () => {
 					try {
 						const result = await tauriCommands.backend.checkInstallation();
-						return { pass: true, message: `已安装: ${result.installed}, 路径: ${result.path || 'N/A'}` };
+						return { pass: true, message: `Installed: ${result.installed}, Path: ${result.path || 'N/A'}` };
 					} catch (error) {
-						return { pass: false, message: `错误: ${(error as Error).message}` };
+						return { pass: false, message: `Error: ${(error as Error).message}` };
 					}
 				}
 			},
 			{
-				name: '启动后端（测试）',
+				name: 'Start backend (test)',
 				run: async () => {
 					try {
-						// 如果后端已在运行，跳过
+						// Skip if backend is already running
 						const currentStatus = await tauriCommands.backend.checkStatus();
 						if (currentStatus.is_running) {
-							return { pass: true, message: '后端已在运行，跳过启动测试', skip: true };
+							return { pass: true, message: 'Backend already running, skip start test', skip: true };
 						}
 						const result = await tauriCommands.backend.start();
 						// Wait a bit for backend to start
 						await new Promise(r => setTimeout(r, 2000));
 						const newStatus = await tauriCommands.backend.checkStatus();
-						return { pass: newStatus.is_running, message: `启动成功: ${result}` };
+						return { pass: newStatus.is_running, message: `Start success: ${result}` };
 					} catch (error) {
-						return { pass: false, message: `错误: ${(error as Error).message}` };
+						return { pass: false, message: `Error: ${(error as Error).message}` };
 					}
 				}
 			}
@@ -181,7 +181,7 @@
 		const passed = autoTestResults.filter(r => r.status === 'pass').length;
 		const failed = autoTestResults.filter(r => r.status === 'fail').length;
 		const skipped = autoTestResults.filter(r => r.status === 'skip').length;
-		statusMessage = `测试完成: ${passed} 通过, ${failed} 失败, ${skipped} 跳过`;
+		statusMessage = `Tests completed: ${passed} passed, ${failed} failed, ${skipped} skipped`;
 	};
 
 	const getAutoTestSummary = () => {
@@ -193,16 +193,16 @@
 	};
 
 	onMount(() => {
-		// 自动检测平台
+		// Auto-detect platform
 		testTauriAvailability();
 	});
 </script>
 
 <div class="test-container">
-	<h1>Tauri 集成测试页面</h1>
+	<h1>Tauri Integration Test Page</h1>
 
 	<div class="info-panel">
-		<h2>环境信息</h2>
+		<h2>Environment Information</h2>
 		<div class="info-item">
 			<span class="label">isDesktop:</span>
 			<span class="value">{String(PLATFORM.isDesktop)}</span>
@@ -222,10 +222,10 @@
 	</div>
 
 	<div class="status-panel">
-		<h2>状态消息</h2>
+		<h2>Status Messages</h2>
 		<div class="status-message">
 			{#if isLoading}
-				<span class="loading">⏳ 加载中...</span>
+				<span class="loading">⏳ Loading...</span>
 			{:else}
 				<pre>{statusMessage}</pre>
 			{/if}
@@ -233,22 +233,22 @@
 	</div>
 
 	<div class="controls-panel">
-		<h2>测试控制</h2>
+		<h2>Test Controls</h2>
 		<div class="button-grid">
 			<button on:click={testTauriAvailability} disabled={isLoading || autoTestRunning}>
-				检测 Tauri 可用性
+				Check Tauri Availability
 			</button>
 			<button on:click={checkPlatform} disabled={isLoading || autoTestRunning}>
-				显示平台信息
+				Show Platform Info
 			</button>
 			<button on:click={testBackendStatus} disabled={isLoading || autoTestRunning}>
-				检查后端状态
+				Check Backend Status
 			</button>
 			<button on:click={testBackendStart} disabled={isLoading || autoTestRunning}>
-				启动后端
+				Start Backend
 			</button>
 			<button on:click={testBackendStop} disabled={isLoading || autoTestRunning}>
-				停止后端
+				Stop Backend
 			</button>
 		</div>
 	</div>
@@ -256,7 +256,7 @@
 	<!-- Auto Test Panel -->
 	<div class="auto-test-panel">
 		<div class="auto-test-header">
-			<h2>自动化测试</h2>
+			<h2>Automated Tests</h2>
 			<button
 				class="run-auto-test-btn"
 				on:click={runAutoTest}
@@ -264,9 +264,9 @@
 				class:running={autoTestRunning}
 			>
 				{#if autoTestRunning}
-					⏳ 测试中... ({Math.round(autoTestProgress)}%)
+					⏳ Testing... ({Math.round(autoTestProgress)}%)
 				{:else}
-					▶️ 运行自动化测试
+					▶️ Run Automated Tests
 				{/if}
 			</button>
 		</div>
@@ -280,10 +280,10 @@
 						</div>
 					{/if}
 					<div class="summary-stats">
-						<span class="stat total">总计: {getAutoTestSummary().total}</span>
-						<span class="stat pass">通过: {getAutoTestSummary().passed}</span>
-						<span class="stat fail">失败: {getAutoTestSummary().failed}</span>
-						<span class="stat skip">跳过: {getAutoTestSummary().skipped}</span>
+						<span class="stat total">Total: {getAutoTestSummary().total}</span>
+						<span class="stat pass">Passed: {getAutoTestSummary().passed}</span>
+						<span class="stat fail">Failed: {getAutoTestSummary().failed}</span>
+						<span class="stat skip">Skipped: {getAutoTestSummary().skipped}</span>
 					</div>
 				</div>
 
@@ -309,19 +309,19 @@
 
 	{#if backendStatus}
 		<div class="backend-status-panel">
-			<h2>后端详细信息</h2>
+			<h2>Backend Details</h2>
 			<div class="status-item">
-				<span class="label">运行中:</span>
+				<span class="label">Running:</span>
 				<span class="value {backendStatus.is_running ? 'running' : 'stopped'}">
 					{String(backendStatus.is_running)}
 				</span>
 			</div>
 			<div class="status-item">
-				<span class="label">端口:</span>
+				<span class="label">Port:</span>
 				<span class="value">{backendStatus.port || 'N/A'}</span>
 			</div>
 			<div class="status-item">
-				<span class="label">进程 ID:</span>
+				<span class="label">Process ID:</span>
 				<span class="value">{backendStatus.pid || 'N/A'}</span>
 			</div>
 		</div>

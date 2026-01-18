@@ -68,7 +68,7 @@ pub struct UpdateConfig {
 impl Default for UpdateConfig {
     fn default() -> Self {
         Self {
-            repository: "open-webui/open-webui".to_string(), // 默认仓库
+            repository: "open-webui/open-webui".to_string(), // Default repository
             check_prereleases: false,
         }
     }
@@ -84,7 +84,7 @@ async fn fetch_latest_release(
         .build()
         .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
 
-    // 构建请求 URL
+    // Build request URL
     let url = if config.check_prereleases {
         format!("https://api.github.com/repos/{}/releases", config.repository)
     } else {
@@ -103,7 +103,7 @@ async fn fetch_latest_release(
     }
 
     if config.check_prereleases {
-        // 获取所有 releases，找到最新的
+        // Get all releases and find the latest one
         let releases: Vec<GitHubRelease> = response
             .json()
             .await
@@ -114,7 +114,7 @@ async fn fetch_latest_release(
             .next()
             .ok_or_else(|| "No releases found".to_string())
     } else {
-        // 获取最新 release
+        // Get latest release
         response
             .json()
             .await
@@ -140,7 +140,7 @@ fn is_newer_version(current: &str, latest: &str, allow_prerelease: bool) -> bool
         Err(_) => return false,
     };
 
-    // 如果不允许预发布版本，且最新版本是预发布版本，则不更新
+    // If prereleases are not allowed and the latest version is a prerelease, don't update
     if !allow_prerelease && !latest_ver.pre.is_empty() {
         return false;
     }
@@ -152,7 +152,7 @@ fn is_newer_version(current: &str, latest: &str, allow_prerelease: bool) -> bool
 fn find_download_url(release: &GitHubRelease) -> Result<String, String> {
     let platform = get_platform_target();
 
-    // 查找匹配平台的安装包
+    // Find matching platform package
     for asset in &release.assets {
         let asset_name = asset.name.to_lowercase();
         if asset_name.contains(&platform) {
@@ -160,7 +160,7 @@ fn find_download_url(release: &GitHubRelease) -> Result<String, String> {
         }
     }
 
-    // 如果没有找到特定平台的，返回第一个源代码压缩包
+    // If no platform-specific package found, return first source archive
     for asset in &release.assets {
         if asset.name.ends_with(".tar.gz") || asset.name.ends_with(".zip") {
             return Ok(asset.browser_download_url.clone());
@@ -254,12 +254,12 @@ pub async fn check_for_updates(
         let download_url = match find_download_url(&release) {
             Ok(url) => url,
             Err(_e) => {
-                // 仍然通知有更新，但标记下载问题
+                // Still notify about update but mark download issue
                 format!("https://github.com/{}/releases/latest", config.repository)
             }
         };
 
-        // 找到对应的文件大小
+        // Find corresponding file size
         let file_size = release.assets
             .iter()
             .find(|a| a.browser_download_url == download_url || download_url.contains(&a.name))
@@ -314,11 +314,11 @@ pub async fn download_update(
     });
 
     let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(600)) // 10 分钟超时
+        .timeout(Duration::from_secs(600)) // 10 minute timeout
         .build()
         .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
 
-    // 发送请求
+    // Send request
     let response = client
         .get(&update_info.download_url)
         .send()
@@ -333,7 +333,7 @@ pub async fn download_update(
     let mut downloaded = 0u64;
     let mut last_progress = 0f64;
 
-    // 创建进度流
+    // Create progress stream
     let mut stream = response.bytes_stream();
 
     use futures_util::StreamExt;
@@ -341,10 +341,10 @@ pub async fn download_update(
         let chunk = chunk_result.map_err(|e| format!("Download error: {}", e))?;
         downloaded += chunk.len() as u64;
 
-        // 计算进度百分比
+        // Calculate progress percentage
         if total_size > 0 {
             let progress = (downloaded as f64 / total_size as f64) * 100.0;
-            // 只在进度变化超过 1% 时发送事件
+            // Only send event when progress changes by more than 1%
             if progress - last_progress >= 1.0 {
                 let _ = app.emit("update-progress", progress);
                 last_progress = progress;
@@ -352,7 +352,7 @@ pub async fn download_update(
         }
     }
 
-    // 下载完成
+    // Download complete
     let _ = app.emit("update-progress", 100.0);
 
     // Emit complete status
@@ -371,17 +371,17 @@ pub async fn download_update(
 /// Install downloaded update
 #[tauri::command]
 pub async fn install_update(app: AppHandle) -> Result<(), String> {
-    // 在实际实现中，这会：
-    // 1. 关闭应用
-    // 2. 使用辅助程序替换文件
-    // 3. 重启应用
+    // In actual implementation, this would:
+    // 1. Close the application
+    // 2. Use helper program to replace files
+    // 3. Restart the application
 
-    // 对于桌面应用，这通常需要：
-    // - Windows: 使用单独的 updater.exe
-    // - macOS: 使用 app bundle 更新
-    // - Linux: 替换二进制文件并重启
+    // For desktop apps, this typically requires:
+    // - Windows: Use separate updater.exe
+    // - macOS: Use app bundle update
+    // - Linux: Replace binary and restart
 
-    // 目前我们打开下载页面让用户手动安装
+    // For now, open download page for manual installation
     let _ = app.emit("update-installing", ());
 
     #[cfg(target_os = "windows")]
@@ -417,7 +417,7 @@ pub fn get_app_version() -> String {
 /// Auto-check for updates on startup
 pub fn auto_check_updates(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
-        // 等待一段时间再检查，避免影响启动速度
+        // Wait before checking to avoid affecting startup speed
         tokio::time::sleep(Duration::from_secs(10)).await;
 
         let current_version = get_app_version();
@@ -425,7 +425,7 @@ pub fn auto_check_updates(app: AppHandle) {
         match check_for_updates(app_clone, current_version).await {
             Ok(result) => {
                 if result.has_update {
-                    // 通知用户有更新
+                    // Notify user about update
                     if let Some(info) = result.info {
                         let _ = app.emit("update-available", info);
                     }

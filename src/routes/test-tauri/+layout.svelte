@@ -1,4 +1,4 @@
-<!-- 这个布局用于绕过根布局的后端检查 -->
+<!-- This layout is used to bypass backend checks from root layout -->
 <svelte:head>
 	<style>
 		/* Override parent h-screen for test page */

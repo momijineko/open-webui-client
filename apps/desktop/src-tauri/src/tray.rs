@@ -15,14 +15,14 @@ use tauri::{
 /// Create the system tray with menu
 pub fn create_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // Create menu items
-    let show_item = MenuItem::with_id(app, "show", "显示窗口", true, None::<&str>)?;
-    let hide_item = MenuItem::with_id(app, "hide", "隐藏窗口", true, None::<&str>)?;
+    let show_item = MenuItem::with_id(app, "show", "Show Window", true, None::<&str>)?;
+    let hide_item = MenuItem::with_id(app, "hide", "Hide Window", true, None::<&str>)?;
     let separator1 = PredefinedMenuItem::separator(app)?;
-    let backend_start_item = MenuItem::with_id(app, "backend_start", "启动后端", true, None::<&str>)?;
-    let backend_stop_item = MenuItem::with_id(app, "backend_stop", "停止后端", true, None::<&str>)?;
-    let backend_status_item = MenuItem::with_id(app, "backend_status", "后端: 未运行", true, None::<&str>)?;
+    let backend_start_item = MenuItem::with_id(app, "backend_start", "Start Backend", true, None::<&str>)?;
+    let backend_stop_item = MenuItem::with_id(app, "backend_stop", "Stop Backend", true, None::<&str>)?;
+    let backend_status_item = MenuItem::with_id(app, "backend_status", "Backend: Not Running", true, None::<&str>)?;
     let separator2 = PredefinedMenuItem::separator(app)?;
-    let quit_item = PredefinedMenuItem::quit(app, Some("退出"))?;
+    let quit_item = PredefinedMenuItem::quit(app, Some("Quit"))?;
 
     // Create main menu
     let menu = Menu::with_items(app, &[
@@ -107,7 +107,7 @@ pub fn create_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 
 /// Update the backend status in the tray menu
 pub fn update_backend_status(app: &tauri::App, running: bool) -> Result<(), Box<dyn std::error::Error>> {
-    let _status_text = if running { "后端: 运行中" } else { "后端: 未运行" };
+    let _status_text = if running { "Backend: Running" } else { "Backend: Not Running" };
 
     // Update the menu item text
     // Note: Tauri v2 doesn't have a direct API to update menu item text

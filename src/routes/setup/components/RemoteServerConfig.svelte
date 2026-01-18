@@ -7,35 +7,35 @@
 	let serverUrl = '';
 	let username = '';
 	let password = '';
-	let needsAuth = false; // 是否需要认证
+	let needsAuth = false; // Whether authentication is needed
 	let isValidUrl = true;
 	let urlError = '';
-	let authError = ''; // 认证信息错误
+	let authError = ''; // Authentication error
 	let isTesting = false;
-	let hasTested = false; // 是否已执行过测试
+	let hasTested = false; // Whether test has been executed
 	let testResult: { success: boolean; message: string } | null = null;
 
 	const exampleServers = [
-		{ name: '示例: http://localhost:8080', url: 'http://localhost:8080' },
-		{ name: '示例: http://192.168.1.100:3000', url: 'http://192.168.1.100:3000' }
+		{ name: 'Example: http://localhost:8080', url: 'http://localhost:8080' },
+		{ name: 'Example: http://192.168.1.100:3000', url: 'http://192.168.1.100:3000' }
 	];
 
 	const validateUrl = (url: string): boolean => {
 		if (!url.trim()) {
-			urlError = '请输入服务器地址';
+			urlError = 'Please enter server address';
 			return false;
 		}
 
 		try {
 			const parsed = new URL(url);
 			if (!['http:', 'https:'].includes(parsed.protocol)) {
-				urlError = '请使用 http:// 或 https:// 开头的地址';
+				urlError = 'Please use http:// or https://';
 				return false;
 			}
 			urlError = '';
 			return true;
 		} catch {
-			urlError = '请输入有效的 URL 地址';
+			urlError = 'Please enter a valid URL';
 			return false;
 		}
 	};
@@ -47,12 +47,12 @@
 		}
 
 		if (!username.trim()) {
-			authError = '请输入用户名';
+			authError = 'Please enter username';
 			return false;
 		}
 
 		if (!password) {
-			authError = '请输入密码';
+			authError = 'Please enter password';
 			return false;
 		}
 
@@ -86,7 +86,7 @@
 			return;
 		}
 
-		// 如果需要认证，先验证认证信息
+		// If authentication is needed, verify credentials first
 		if (needsAuth && !validateAuth()) {
 			return;
 		}
@@ -95,15 +95,15 @@
 		testResult = null;
 
 		try {
-			// 测试连接 - 尝试访问服务器的健康检查端点
+			// Test connection - try to access server health check endpoint
 			const testUrl = serverUrl.replace(/\/$/, '') + '/api/config';
 
-			// 构建 headers
+			// Build headers
 			const headers: Record<string, string> = {
 				'Content-Type': 'application/json'
 			};
 
-			// 如果需要认证且提供了用户名和密码，添加 Basic Auth
+			// Add Basic Auth if authentication is required and credentials are provided
 			if (needsAuth && username && password) {
 				const credentials = btoa(`${username}:${password}`);
 				headers['Authorization'] = `Basic ${credentials}`;
@@ -117,27 +117,27 @@
 			if (response.ok) {
 				testResult = {
 					success: true,
-					message: '连接成功！服务器可以访问'
+					message: 'Connection successful! Server is accessible'
 				};
 			} else if (response.status === 401) {
 				testResult = {
 					success: false,
-					message: '认证失败：用户名或密码错误'
+					message: 'Authentication failed: Incorrect username or password'
 				};
 			} else {
 				testResult = {
 					success: false,
-					message: `服务器返回错误: ${response.status} ${response.statusText}`
+					message: `Server returned error: ${response.status} ${response.statusText}`
 				};
 			}
 		} catch (error) {
 			testResult = {
 				success: false,
-				message: `连接失败: ${(error as Error).message}`
+				message: `Connection failed: ${(error as Error).message}`
 			};
 		} finally {
 			isTesting = false;
-			hasTested = true; // 标记已执行过测试
+			hasTested = true; // Mark that test has been executed
 		}
 	};
 
@@ -147,23 +147,23 @@
 			return;
 		}
 
-		// 如果需要认证，验证认证信息
+		// If authentication is needed, verify credentials
 		if (needsAuth && !validateAuth()) {
 			return;
 		}
 
-		// 检查是否已执行测试且测试成功
+		// Check if test has been executed and passed
 		if (!hasTested) {
-			alert('请先测试连接');
+			alert('Please test connection first');
 			return;
 		}
 
 		if (!testResult?.success) {
-			alert('测试连接未通过，请检查服务器地址和认证信息');
+			alert('Connection test failed. Please check Server Address and Authentication Information');
 			return;
 		}
 
-		// 移除末尾的斜杠
+		// Remove trailing slash
 		const cleanUrl = serverUrl.replace(/\/$/, '');
 
 		onConfirm({
@@ -176,21 +176,21 @@
 
 {#if currentStep === 4 && selectedMode === 'remote'}
 	<div class="remote-config">
-		<h1>配置远程服务器</h1>
-		<p>输入您要连接的 OpenWebUI 服务器地址</p>
+		<h1>Configure Remote Server</h1>
+		<p>Enter the OpenWebUI server address you want to connect to</p>
 
 		<div class="config-form">
-			<!-- 服务器地址配置 -->
+			<!-- Server Address Configuration -->
 			<div class="config-section">
 				<div class="section-header">
-					<h2>服务器地址</h2>
+					<h2>Server Address</h2>
 					<span class="section-description">
-						输入您自己部署的 OpenWebUI 服务器地址
+						Enter your self-deployed OpenWebUI Server Address
 					</span>
 				</div>
 
 				<div class="form-group">
-					<label>服务器 URL</label>
+					<label>Server URL</label>
 					<input
 						type="text"
 						placeholder="https://your-server.com"
@@ -200,7 +200,7 @@
 						class:invalid={!isValidUrl}
 					/>
 					<span class="input-hint">
-						例如: http://localhost:8080 或 https://your-server.com
+						e.g.: http://localhost:8080 or https://your-server.com
 					</span>
 					{#if !isValidUrl}
 						<span class="error-message">{urlError}</span>
@@ -210,12 +210,12 @@
 				<div class="form-group">
 					<label class="checkbox-label">
 						<input type="checkbox" bind:checked={needsAuth} />
-						<span>服务器需要认证</span>
+						<span>Server requires authentication</span>
 					</label>
 				</div>
 
 				<div class="form-group">
-					<label>快速填入示例</label>
+					<label>Quick Fill Examples</label>
 					<div class="example-buttons">
 						{#each exampleServers as example}
 							<button
@@ -234,9 +234,9 @@
 					disabled={!serverUrl || isTesting}
 				>
 					{#if isTesting}
-						测试中...
+						Testing...
 					{:else}
-						🔍 测试连接
+						🔍 Test Connection
 					{/if}
 				</button>
 
@@ -247,18 +247,18 @@
 				{/if}
 			</div>
 
-			<!-- 认证配置 -->
+			<!-- Authentication Configuration -->
 			{#if needsAuth}
 				<div class="config-section">
 					<div class="section-header">
-						<h2>认证信息</h2>
+						<h2>Authentication Information</h2>
 						<span class="section-description">
-							输入 Basic Auth 用户名和密码
+							Enter Basic Auth username and password
 						</span>
 					</div>
 
 					<div class="form-group">
-						<label>用户名</label>
+						<label>Username</label>
 						<input
 							type="text"
 							placeholder="admin"
@@ -269,7 +269,7 @@
 					</div>
 
 					<div class="form-group">
-						<label>密码</label>
+						<label>Password</label>
 						<input
 							type="password"
 							placeholder="••••••••"
@@ -285,26 +285,26 @@
 				</div>
 			{/if}
 
-			<!-- 提示信息 -->
+			<!-- Tips Information -->
 			<div class="info-box">
-				<h3>💡 提示</h3>
+				<h3>💡 Tips</h3>
 				<ul>
-					<li>确保您的服务器可以从当前设备访问</li>
-					<li>如果使用自签名证书，可能需要在浏览器中先信任该证书</li>
-					<li>Basic Auth 凭据将安全保存在本地</li>
-					<li>配置后可以在设置页面随时修改</li>
+					<li>Ensure your server is accessible from current device</li>
+					<li>If using self-signed certificate, you may need to trust it in browser first</li>
+					<li>Basic Auth credentials will be securely stored locally</li>
+					<li>Can be modified in settings page after configuration</li>
 				</ul>
 			</div>
 		</div>
 
 		<div class="actions">
-			<button class="btn-secondary" on:click={onBack}>上一步</button>
+			<button class="btn-secondary" on:click={onBack}>Previous</button>
 			<button
 				class="btn-primary"
 				on:click={handleConfirm}
 				disabled={!isValidUrl || !serverUrl || !hasTested || !testResult?.success}
 			>
-				下一步
+				Next
 			</button>
 		</div>
 	</div>
@@ -322,7 +322,7 @@
 		flex-direction: column;
 	}
 
-	/* 自定义滚动条样式 */
+	/* Custom scrollbar style */
 	.remote-config::-webkit-scrollbar {
 		width: 8px;
 	}

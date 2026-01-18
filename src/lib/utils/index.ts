@@ -93,15 +93,15 @@ function isChineseChar(char: string): boolean {
 	return /\p{Script=Han}/u.test(char);
 }
 
-// Tackle "Model output issue not following the standard Markdown/LaTeX format" in Chinese.
+// Tackle "Model output issue not following the standard Markdown/LaTeX format" in Chinese content.
 function processChineseContent(content: string): string {
 	// This function is used to process the response content before the response content is rendered.
 	const lines = content.split('\n');
 	const processedLines = lines.map((line) => {
 		if (/[\u4e00-\u9fa5]/.test(line)) {
 			// Problems caused by Chinese parentheses
-			/* Discription:
-			 *   When `*` has Chinese delimiters on the inside, markdown parser ignore bold or italic style.
+			/* Description:
+			 *   When `*` has Chinese delimiters on the inside, markdown parser ignores bold or italic style.
 			 *   - e.g. `**中文名（English）**中文内容` will be parsed directly,
 			 *          instead of `<strong>中文名（English）</strong>中文内容`.
 			 * Solution:

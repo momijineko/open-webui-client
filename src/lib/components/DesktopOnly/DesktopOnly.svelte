@@ -2,9 +2,9 @@
 	import { PLATFORM } from '$lib/constants';
 
 	/**
-	 * 仅在桌面端显示内容的包装组件
-	 * @slot - 默认插槽，仅在桌面端显示
-	 * @slot fallback - 可选的降级插槽，在非桌面端显示
+	 * Wrapper component to display content only on desktop
+	 * @slot - Default slot, displayed only on desktop
+	 * @slot fallback - Optional fallback slot, displayed on non-desktop platforms
 	 */
 	let slotType: 'default' | 'fallback' = PLATFORM.isDesktop ? 'default' : 'fallback';
 </script>

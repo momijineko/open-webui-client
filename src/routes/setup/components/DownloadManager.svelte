@@ -16,8 +16,8 @@
 	let components = [
 		{
 			id: 'python',
-			name: 'Python 环境',
-			description: 'Python 3.11 运行时环境（如系统已有则跳过）',
+			name: 'Python Environment',
+			description: 'Python 3.11 runtime environment (will be skipped if already installed)',
 			size: '~25MB',
 			required: true,
 			installed: false,
@@ -26,9 +26,9 @@
 		},
 		{
 			id: 'backend',
-			name: 'OpenWebUI 后端',
-			description: '从本地源码构建并安装 Python 后端服务',
-			size: '本地构建',
+			name: 'OpenWebUI Backend',
+			description: 'Build and install Python backend service from local source',
+			size: 'Local build',
 			required: true,
 			installed: false,
 			progress: 0,
@@ -38,8 +38,8 @@
 
 	let selectedComponents = ['python', 'backend'];
 	let isInstalling = false;
-	let installStatus = '准备安装...';
-	let installingPython = false; // 是否正在安装 Python
+	let installStatus = 'Preparing installation...';
+	let installingPython = false; // Whether installing Python
 
 	// Store unlisten functions
 	let unlistenProgress: (() => void) | null = null;
@@ -49,7 +49,7 @@
 	onMount(async () => {
 		// Setup event listeners for installation progress
 		if (isTauriAvailable()) {
-			// 添加一个全局测试监听器（仅用于调试）
+			// Add a global test listener (for debugging only)
 			try {
 				const { listen } = await import('@tauri-apps/api/event');
 				await listen('download-status', (event) => {
@@ -61,7 +61,7 @@
 				console.error('Failed to register test listener:', e);
 			}
 
-			// Python 安装进度监听
+			// Python installation progress listener
 			listenDownloadProgress((progress) => {
 				console.log('=== Download progress event received ===', progress);
 				console.log('=== progress.percentage ===', progress.percentage);
@@ -72,16 +72,16 @@
 
 				if (compIndex !== -1) {
 					console.log('=== component.progress before ===', components[compIndex].progress);
-					// 使用 Svelte 的响应式更新方式：重新赋值整个数组
+					// Use Svelte's reactive update method: reassign the entire array
 					components[compIndex] = {
 						...components[compIndex],
 						progress: progress.percentage
 					};
-					components = [...components]; // 触发响应式更新
+					components = [...components]; // Trigger reactive update
 					console.log('=== component.progress after ===', components[compIndex].progress);
 
 					const statusText = installingPython
-						? `安装 Python: ${Math.round(progress.percentage)}%`
+						? `Installing Python: ${Math.round(progress.percentage)}%`
 						: `${progress.speed} ${Math.round(progress.percentage)}%`;
 					installStatus = statusText;
 					console.log('=== Updated installStatus ===', installStatus);
@@ -93,18 +93,18 @@
 				console.error('Failed to register download-progress listener:', err);
 			});
 
-			// 安装状态监听
+			// Installation status listener
 			listenDownloadStatus((status) => {
 				console.log('=== Installation status event received ===', status);
 				console.log('=== status.status ===', status.status);
 				console.log('=== installStatus before ===', installStatus);
 
-				// 更新状态文本
+				// Update status text
 				installStatus = status.status;
 
 				console.log('=== installStatus after ===', installStatus);
 
-				// 如果检测到正在安装 Python
+				// If Python installation is detected
 				if (status.file?.includes('Python')) {
 					console.log('=== Installing Python ===');
 					installingPython = true;
@@ -113,7 +113,7 @@
 						pythonComp.status = 'installing';
 						pythonComp.progress = 50;
 					}
-				} else if (status.file?.includes('后端')) {
+				} else if (status.file?.includes('Backend')) {
 					console.log('=== Installing Backend ===');
 					installingPython = false;
 					const pythonComp = components.find((c) => c.id === 'python');
@@ -127,7 +127,7 @@
 					}
 				}
 
-				// 强制触发响应式更新
+				// Force trigger reactive update
 				return Promise.resolve();
 			}).then((unlisten) => {
 				console.log('download-status listener registered');
@@ -136,7 +136,7 @@
 				console.error('Failed to register download-status listener:', err);
 			});
 
-			// 安装完成监听
+			// Installation complete listener
 			listenDownloadComplete((result) => {
 				console.log('Installation complete:', result);
 				const backendComp = components.find((c) => c.id === 'backend');
@@ -145,7 +145,7 @@
 					backendComp.progress = 100;
 				}
 				isInstalling = false;
-				installStatus = '安装完成！';
+				installStatus = 'Installation Complete!';
 				onComplete();
 			}).then((unlisten) => {
 				unlistenComplete = unlisten;
@@ -163,13 +163,13 @@
 	const startInstallation = async () => {
 		console.log('=== startInstallation called ===');
 		isInstalling = true;
-		installStatus = '正在准备安装...';
+		installStatus = 'Preparing installation...';
 		console.log('=== isInstalling set to true ===');
 
 		try {
 			if (isTauriAvailable()) {
 				console.log('=== Tauri is available, starting installation ===');
-				// 从配置中获取 PyPI 镜像和代理设置
+				// Get PyPI mirror and proxy settings from config
 				const backendConfig: { pypiMirror?: string | null; proxyUrl?: string | null } | undefined =
 					config?.pypiMirror?.url && config?.pypiMirror?.source !== 'auto'
 						? {
@@ -180,50 +180,50 @@
 
 				console.log('=== Backend config:', backendConfig);
 
-				// 立即跳转到下一页（安装日志页面）
+				// Navigate to next immediately (Installation Log page)
 				console.log('=== Navigating to next step ===');
 				onComplete();
 
-				// 延迟调用安装命令，让 ProgressScreen 有时间注册事件监听器
+				// Delay calling install command to give ProgressScreen time to register event listeners
 				setTimeout(() => {
 					console.log('=== Calling installLocalBackend... ===');
 					tauriCommands.download.installLocalBackend(backendConfig).then((result) => {
 						console.log('=== Installation command result:', result);
 					}).catch((error) => {
 						console.error('=== Installation failed:', error);
-						alert('安装失败：' + (error as Error).message);
+						alert('Installation failed:' + (error as Error).message);
 						isInstalling = false;
-						installStatus = '安装失败';
+						installStatus = 'Installation failed';
 					});
-				}, 500); // 延迟 500ms 确保 ProgressScreen 已完成 onMount
+				}, 500); // Delay 500ms to ensure ProgressScreen has completed onMount
 			} else {
-				// 非 Tauri 环境的模拟
+				// Non-Tauri environment simulation
 				console.warn('Tauri not available, simulating installation');
 				onComplete();
 				simulateInstallation();
 			}
 		} catch (error) {
 			console.error('=== Installation failed:', error);
-			alert('安装失败：' + (error as Error).message);
+			alert('Installation failed:' + (error as Error).message);
 			isInstalling = false;
-			installStatus = '安装失败';
+			installStatus = 'Installation failed';
 		}
 	};
 
 	const simulateInstallation = () => {
 		let progress = 0;
 		const stages = [
-			{ text: '检查 Python 环境...', at: 10 },
-			{ text: '安装依赖包...', at: 30 },
-			{ text: '配置数据库...', at: 60 },
-			{ text: '完成安装...', at: 90 }
+			{ text: 'Checking Python Environment...', at: 10 },
+			{ text: 'Installing dependency packages...', at: 30 },
+			{ text: 'Configuring database...', at: 60 },
+			{ text: 'Completing installation...', at: 90 }
 		];
 
 		let stageIndex = 0;
 		const interval = setInterval(() => {
 			progress += 2;
 
-			// 更新状态文本
+			// Update status text
 			while (stageIndex < stages.length && progress >= stages[stageIndex].at) {
 				installStatus = stages[stageIndex].text;
 				stageIndex++;
@@ -242,7 +242,7 @@
 					comp.progress = 100;
 				}
 				isInstalling = false;
-				installStatus = '安装完成！';
+				installStatus = 'Installation Complete!';
 				setTimeout(() => {
 					onComplete();
 				}, 500);
@@ -254,8 +254,8 @@
 {#if currentStep === 5}
 	<div class="download-manager">
 		<div class="header">
-			<h1>安装组件</h1>
-			<p>准备从本地源码构建并安装 OpenWebUI 后端</p>
+			<h1>Install Components</h1>
+			<p>Preparing to build and install OpenWebUI Backend from local source</p>
 		</div>
 
 		<div class="component-list">
@@ -280,16 +280,16 @@
 							<div class="item-title-row">
 								<h3>{component.name}</h3>
 								<span class="badge {component.required ? 'required' : 'optional'}">
-									{component.required ? '必需' : '可选'}
+									{component.required ? 'Required' : 'Optional'}
 								</span>
 							</div>
 							<p class="item-desc">{component.description}</p>
 							<div class="item-meta">
 								<span class="size">🔧 {component.size}</span>
 								{#if component.id === 'python'}
-									<span class="note">💡 如系统已有 Python 3.10+ 将自动跳过</span>
+									<span class="note">💡 Will skip if Python 3.10+ is already installed</span>
 								{:else}
-									<span class="note">💡 使用本地 Python 环境</span>
+									<span class="note">💡 Using local Python Environment</span>
 								{/if}
 							</div>
 						</div>
@@ -301,22 +301,22 @@
 		<div class="info-box">
 			<div class="info-icon">ℹ️</div>
 			<div class="info-content">
-				<h4>本地安装说明</h4>
+				<h4>Local Installation Instructions</h4>
 				<ul>
-					<li>系统将自动检测 Python 环境，如未安装将自动下载（~25MB）</li>
-					<li>Python 将安装在应用数据目录，不影响系统环境</li>
-					<li>安装过程需要网络连接以下载依赖包</li>
-					<li>如果配置了代理，安装过程将自动使用代理</li>
-					<li>预计安装时间：2-5 分钟（取决于网络速度）</li>
+					<li>System will automatically detect Python Environment, download if not installed (~25MB)</li>
+					<li>Python will be installed in app data directory, will not affect system environment</li>
+					<li>Installation process requires network connection to download dependency packages</li>
+					<li>If proxy is configured, installation will use it automatically</li>
+					<li>Estimated installation time: 2-5 minutes (depends on network speed)</li>
 				</ul>
 			</div>
 		</div>
 
 		<div class="footer">
 			<div class="actions">
-				<button class="btn-back" on:click={onBack} disabled={isInstalling}>上一步</button>
+				<button class="btn-back" on:click={onBack} disabled={isInstalling}>Previous</button>
 				<button class="btn-primary" on:click={startInstallation} disabled={isInstalling}>
-					{isInstalling ? '安装中...' : '开始安装'}
+					{isInstalling ? 'Installing...' : 'Start Installation'}
 				</button>
 			</div>
 		</div>
@@ -325,7 +325,7 @@
 
 <style>
 	.download-manager {
-		/* 移除白色背景和阴影，与其他组件保持一致 */
+		/* Remove white background and shadow to match other components */
 		display: flex;
 		flex-direction: column;
 		gap: 1.5rem;

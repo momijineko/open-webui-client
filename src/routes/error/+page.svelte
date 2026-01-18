@@ -60,7 +60,7 @@
 									window.location.href = '/setup';
 								}}
 							>
-								前往设置
+								Go to Setup
 							</button>
 						{/if}
 					</div>

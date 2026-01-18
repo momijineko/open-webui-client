@@ -1,7 +1,7 @@
 /**
- * Tauri CLI 自动化测试脚本
+ * Tauri CLI Automated Test Script
  *
- * 通过命令行直接测试 Tauri 命令功能
+ * Test Tauri command functionality directly through command line
  *
  * Usage:
  *   node scripts/tests/tauri-cli-test.js
@@ -94,139 +94,139 @@ async function invokeTauriCommand(command, args = []) {
   });
 }
 
-// Test: Tauri 可用性检测
+// Test: Tauri availability check
 async function testTauriAvailability() {
-  log.test('Tauri 可用性检测');
+  log.test('Tauri Availability Check');
   try {
-    // 尝试运行一个简单的 Tauri 命令
+    // Try to run a simple Tauri command
     const output = await invokeTauriCommand('help');
     if (output.includes('Usage:')) {
-      recordPass('Tauri 可用性检测', 'Tauri CLI 可用');
+      recordPass('Tauri Availability Check', 'Tauri CLI is available');
       return true;
     }
   } catch (error) {
-    recordFail('Tauri 可用性检测', error.message);
+    recordFail('Tauri Availability Check', error.message);
     return false;
   }
 }
 
-// Test: 获取应用配置
+// Test: Get application config
 async function testGetAppConfig() {
-  log.test('获取应用配置');
+  log.test('Get Application Config');
   try {
     const output = await invokeTauriCommand('get_app_config');
-    log.info(`配置输出: ${output.substring(0, 100)}...`);
-    recordPass('获取应用配置');
+    log.info(`Config Output: ${output.substring(0, 100)}...`);
+    recordPass('Get Application Config');
     return JSON.parse(output);
   } catch (error) {
-    recordFail('获取应用配置', error.message);
+    recordFail('Get Application Config', error.message);
     return null;
   }
 }
 
-// Test: 检查后端安装状态
+// Test: Check backend installation status
 async function testBackendInstallation() {
-  log.test('检查后端安装状态');
+  log.test('Check Backend Installation Status');
   try {
     const output = await invokeTauriCommand('check_backend_installation');
-    log.info(`后端状态: ${output}`);
-    recordPass('检查后端安装状态');
+    log.info(`Backend Status: ${output}`);
+    recordPass('Check Backend Installation Status');
     return JSON.parse(output);
   } catch (error) {
-    recordFail('检查后端安装状态', error.message);
+    recordFail('Check Backend Installation Status', error.message);
     return null;
   }
 }
 
-// Test: 检查后端运行状态
+// Test: Check backend running status
 async function testBackendStatus() {
-  log.test('检查后端运行状态');
+  log.test('Check Backend Running Status');
   try {
     const output = await invokeTauriCommand('check_backend_status');
-    log.info(`状态输出: ${output}`);
-    recordPass('检查后端运行状态');
+    log.info(`Status Output: ${output}`);
+    recordPass('Check Backend Running Status');
     return JSON.parse(output);
   } catch (error) {
-    recordFail('检查后端运行状态', error.message);
+    recordFail('Check Backend Running Status', error.message);
     return null;
   }
 }
 
-// Test: 获取下载目录
+// Test: Get download directory
 async function testGetDownloadDir() {
-  log.test('获取下载目录');
+  log.test('Get Download Directory');
   try {
     const output = await invokeTauriCommand('get_download_dir_path');
-    log.info(`下载目录: ${output}`);
-    recordPass('获取下载目录');
+    log.info(`Download Directory: ${output}`);
+    recordPass('Get Download Directory');
     return output;
   } catch (error) {
-    recordFail('获取下载目录', error.message);
+    recordFail('Get Download Directory', error.message);
     return null;
   }
 }
 
-// Test: 启动后端
+// Test: Start backend
 async function testStartBackend() {
-  log.test('启动后端（测试）');
+  log.test('Start Backend (Test)');
   try {
-    // 先检查后端是否已经在运行
+    // First check if backend is already running
     const statusOutput = await invokeTauriCommand('check_backend_status');
     const status = JSON.parse(statusOutput);
 
     if (status.is_running) {
-      log.info('后端已在运行，跳过启动测试');
-      recordPass('启动后端', '后端已在运行');
+      log.info('Backend is already running, skip start test');
+      recordPass('Start Backend', 'Backend is already running');
       return { skipped: true, alreadyRunning: true };
     }
 
-    // 尝试启动后端
+    // Try to start backend
     const output = await invokeTauriCommand('start_backend');
-    log.info(`启动输出: ${output}`);
+    log.info(`Start Output: ${output}`);
 
-    // 等待几秒让后端启动
+    // Wait a few seconds for backend to start
     await new Promise(resolve => setTimeout(resolve, 3000));
 
-    // 再次检查状态
+    // Check status again
     const newStatusOutput = await invokeTauriCommand('check_backend_status');
     const newStatus = JSON.parse(newStatusOutput);
 
     if (newStatus.is_running) {
-      recordPass('启动后端', `后端已启动，端口: ${newStatus.port}`);
+      recordPass('Start Backend', `Backend started, port: ${newStatus.port}`);
       return { success: true, port: newStatus.port };
     } else {
-      recordFail('启动后端', '后端启动后状态检查失败');
+      recordFail('Start Backend', 'Status check failed after starting');
       return { success: false };
     }
   } catch (error) {
-    recordFail('启动后端', error.message);
+    recordFail('Start Backend', error.message);
     return { success: false };
   }
 }
 
-// Test: 停止后端
+// Test: Stop backend
 async function testStopBackend() {
-  log.test('停止后端（测试）');
+  log.test('Stop Backend (Test)');
   try {
     const output = await invokeTauriCommand('stop_backend');
-    log.info(`停止输出: ${output}`);
+    log.info(`Stop Output: ${output}`);
 
-    // 等待几秒让后端停止
+    // Wait a few seconds for backend to stop
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // 检查状态
+    // Check status
     const statusOutput = await invokeTauriCommand('check_backend_status');
     const status = JSON.parse(statusOutput);
 
     if (!status.is_running) {
-      recordPass('停止后端');
+      recordPass('Stop Backend');
       return true;
     } else {
-      recordFail('停止后端', '后端仍在运行');
+      recordFail('Stop Backend', 'Backend is still running');
       return false;
     }
   } catch (error) {
-    recordFail('停止后端', error.message);
+    recordFail('Stop Backend', error.message);
     return false;
   }
 }
@@ -234,23 +234,23 @@ async function testStopBackend() {
 // Print summary
 function printSummary() {
   log.header('=');
-  log.section('测试总结');
+  log.section('Test Summary');
   log.header('=');
 
-  console.log(`\n  ${colors.green}通过: ${results.passed.length}${colors.reset}`);
-  console.log(`  ${colors.red}失败: ${results.failed.length}${colors.reset}`);
-  console.log(`  ${colors.yellow}跳过: ${results.skipped.length}${colors.reset}`);
-  console.log(`  总计: ${results.passed.length + results.failed.length + results.skipped.length}\n`);
+  console.log(`\n  ${colors.green}Passed: ${results.passed.length}${colors.reset}`);
+  console.log(`  ${colors.red}Failed: ${results.failed.length}${colors.reset}`);
+  console.log(`  ${colors.yellow}Skipped: ${results.skipped.length}${colors.reset}`);
+  console.log(`  Total: ${results.passed.length + results.failed.length + results.skipped.length}\n`);
 
   if (results.failed.length > 0) {
-    log.error('\n失败的测试:');
+    log.error('\nFailed tests:');
     results.failed.forEach((f) => {
       console.log(`  - ${f.name}: ${f.error}`);
     });
   }
 
   if (results.skipped.length > 0) {
-    log.warn('\n跳过的测试:');
+    log.warn('\nSkipped tests:');
     results.skipped.forEach((s) => {
       console.log(`  - ${s.name}: ${s.reason}`);
     });
@@ -260,37 +260,37 @@ function printSummary() {
 // Main test runner
 async function runTests() {
   log.header('=');
-  log.section('TAURI 命令行自动化测试');
+  log.section('TAURI COMMAND LINE AUTOMATED TEST');
   log.header('=');
 
-  log.info('开始测试 Tauri 命令...\n');
+  log.info('Starting Tauri command tests...\n');
 
-  // 运行测试
+  // Run tests
   await testTauriAvailability();
   await testGetAppConfig();
   await testBackendInstallation();
   await testBackendStatus();
   await testGetDownloadDir();
 
-  // 后端启动/停止测试（可选，需要更长时间）
-  log.section('\n是否测试后端启动/停止功能？');
-  log.info('（这会启动实际的 Python 后端进程）');
-  log.info('跳过此测试，因为需要更多时间');
+  // Backend start/stop tests (optional, requires more time)
+  log.section('\nTest backend start/stop functionality?');
+  log.info('(This will start the actual Python backend process)');
+  log.info('Skipping this test because it requires more time');
 
-  recordSkip('启动后端测试', '需要手动确认');
-  recordSkip('停止后端测试', '需要手动确认');
+  recordSkip('Start Backend Test', 'Requires manual confirmation');
+  recordSkip('Stop Backend Test', 'Requires manual confirmation');
 
-  // 打印总结
+  // Print summary
   printSummary();
 
-  // 返回退出码
+  // Return exit code
   const exitCode = results.failed.length > 0 ? 1 : 0;
   process.exit(exitCode);
 }
 
 // Run tests
 runTests().catch((err) => {
-  log.error(`\n致命错误: ${err.message}`);
+  log.error(`\nFatal Error: ${err.message}`);
   console.error(err);
   process.exit(1);
 });

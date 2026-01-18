@@ -1,4 +1,4 @@
-<!-- 这个布局用于安装向导，绕过根布局的后端检查 -->
+<!-- This layout is for the installation wizard, bypassing backend checks from root layout -->
 <script lang="ts">
 	import '../../tailwind.css';
 	import '../../app.css';

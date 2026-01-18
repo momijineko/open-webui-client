@@ -5,8 +5,8 @@
 	export let currentStep: number;
 	export let onComplete: () => void;
 
-	let installStatus = '正在准备安装...';
-	let displayStatus = '正在准备安装...';
+	let installStatus = 'Preparing installation...';
+	let displayStatus = 'Preparing installation...';
 	let installLogs: string[] = [];
 	let isComplete = false;
 
@@ -14,31 +14,31 @@
 	let unlistenStatus: (() => void) | null = null;
 	let unlistenComplete: (() => void) | null = null;
 
-	// 解析状态文本，提取简短的包名显示
+	// Parse status text, extract short package name for display
 	const parseStatus = (status: string): string => {
-		if (status.includes('正在收集:')) {
-			const pkgName = status.replace('正在收集:', '').trim().split(' ')[0];
-			return `正在收集: ${pkgName}`;
+		if (status.includes('Collecting:')) {
+			const pkgName = status.replace('Collecting:', '').trim().split(' ')[0];
+			return `Collecting: ${pkgName}`;
 		}
-		if (status.includes('正在下载:')) {
-			const pkgName = status.replace('正在下载:', '').trim().split(' ')[0];
-			return `正在下载: ${pkgName}`;
+		if (status.includes('Downloading:')) {
+			const pkgName = status.replace('Downloading:', '').trim().split(' ')[0];
+			return `Downloading: ${pkgName}`;
 		}
-		if (status.includes('已安装:')) {
-			// 从 "已安装: Requirement already satisfied: xxx in ..." 中提取包名
+		if (status.includes('Installed:')) {
+			// Extract package name from "Installed: Requirement already satisfied: xxx in ..."
 			const match = status.match(/Requirement already satisfied: ([\w-]+)/);
 			if (match) {
-				return `已安装: ${match[1]}`;
+				return `Installed: ${match[1]}`;
 			}
-			// 如果没有匹配到，尝试其他格式
-			const pkgName = status.replace('已安装:', '').trim().split(' ')[0];
-			return `已安装: ${pkgName}`;
+			// If no match, try other formats
+			const pkgName = status.replace('Installed:', '').trim().split(' ')[0];
+			return `Installed: ${pkgName}`;
 		}
-		if (status.includes('正在处理')) {
-			return '正在安装依赖包...';
+		if (status.includes('Processing')) {
+			return 'Installing dependency packages...';
 		}
-		if (status.includes('安装完成！')) {
-			return '安装完成！';
+		if (status.includes('Installation Complete!')) {
+			return 'Installation Complete!';
 		}
 		return status;
 	};
@@ -46,17 +46,17 @@
 	onMount(async () => {
 		// Setup event listeners for installation progress
 		if (isTauriAvailable()) {
-			// 监听下载状态事件
+			// Listen to download status events
 			listenDownloadStatus((status) => {
 				console.log('Installation status:', status);
 				installStatus = status.status;
 				displayStatus = parseStatus(status.status);
 
-				// 添加到日志
+				// Add to log
 				const logEntry = `[${new Date().toLocaleTimeString()}] ${status.status}`;
 				addLog(logEntry);
 
-				// 自动滚动到底部
+				// Auto scroll to bottom
 				tick().then(() => {
 					scrollToBottom();
 				});
@@ -66,13 +66,13 @@
 				console.error('Failed to register download-status listener:', err);
 			});
 
-			// 监听安装完成事件
+			// Listen to installation complete events
 			listenDownloadComplete((result) => {
 				console.log('Installation complete:', result);
 				isComplete = true;
-				installStatus = '安装完成！';
-				displayStatus = '安装完成！';
-				addLog('✅ 安装成功完成！');
+				installStatus = 'Installation Complete!';
+				displayStatus = 'Installation Complete!';
+				addLog('✅ Installation completed successfully!');
 			}).then((unlisten) => {
 				unlistenComplete = unlisten;
 			});
@@ -101,19 +101,19 @@
 	<div class="progress-screen">
 		<div class="progress-content">
 			<div class="header">
-				<h2>正在安装 OpenWebUI 后端</h2>
+				<h2>Installing OpenWebUI Backend</h2>
 				<p class="status">{displayStatus}</p>
 			</div>
 
 			<div class="log-section">
-				<h3>安装日志</h3>
+				<h3>Installation Log</h3>
 				<div class="log-container">
 					{#if installLogs.length > 0}
 						{#each installLogs as log}
 							<div class="log-entry">{log}</div>
 						{/each}
 					{:else}
-						<div class="log-entry empty">等待安装开始...</div>
+						<div class="log-entry empty">Waiting for installation to start...</div>
 					{/if}
 				</div>
 			</div>
@@ -121,8 +121,8 @@
 			{#if isComplete}
 				<div class="success-message">
 					<div class="success-icon">✓</div>
-					<p>安装完成！</p>
-					<button class="btn-next" on:click={onComplete}>下一页</button>
+					<p>Installation Complete!</p>
+					<button class="btn-next" on:click={onComplete}>Next</button>
 				</div>
 			{/if}
 		</div>
@@ -249,7 +249,7 @@
 		box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
 	}
 
-	/* 滚动条样式 */
+	/* Custom scrollbar style */
 	.log-container::-webkit-scrollbar {
 		width: 8px;
 	}

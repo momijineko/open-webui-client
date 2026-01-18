@@ -4,52 +4,52 @@
 	export let onConfirm: (config: any) => void;
 	export let onBack: () => void;
 
-	// 组件镜像源配置
+	// Component mirror configuration
 	let componentMirrorSource = 'auto';
 	let customComponentMirrors = '';
 
-	// Python PyPI 镜像源配置
+	// Python PyPI mirror configuration
 	let pypiMirrorSource = 'auto';
 	let customPyPIUrl = '';
 
-	// 代理配置
+	// Proxy configuration
 	let enableProxy = false;
 	let proxyUrl = '';
 
-	// Hugging Face 镜像配置
+	// Hugging Face mirror configuration
 	let hfMirrorSource = 'auto';
 	let customHFUrl = '';
 
-	// 离线模式
+	// Offline mode
 	let offlineMode = false;
 
 	const predefinedComponentMirrors = [
-		{ id: 'auto', name: '自动选择（推荐）', url: '' },
-		{ id: 'aliyun', name: '阿里云 CDN (中国)', url: 'https://openwebui.oss-cn-hangzhou.aliyuncs.com' },
-		{ id: 'ghproxy', name: 'GHProxy (中国加速)', url: 'https://ghproxy.com/https://github.com' },
+		{ id: 'auto', name: 'Auto (Recommended)', url: '' },
+		{ id: 'aliyun', name: 'Aliyun CDN (China)', url: 'https://openwebui.oss-cn-hangzhou.aliyuncs.com' },
+		{ id: 'ghproxy', name: 'GHProxy (China Acceleration)', url: 'https://ghproxy.com/https://github.com' },
 		{ id: 'github', name: 'GitHub Release', url: 'https://github.com/open-webui/open-webui/releases' },
-		{ id: 'custom', name: '自定义镜像源', url: '' }
+		{ id: 'custom', name: 'Custom Mirror Source', url: '' }
 	];
 
 	const predefinedPyPIMirrors = [
-		{ id: 'auto', name: '自动选择（推荐）', url: '' },
-		{ id: 'aliyun', name: '阿里云 PyPI (中国)', url: 'https://mirrors.aliyun.com/pypi/simple/' },
-		{ id: 'tsinghua', name: '清华大学 PyPI (中国)', url: 'https://pypi.tuna.tsinghua.edu.cn/simple/' },
-		{ id: 'official', name: 'PyPI 官方源', url: 'https://pypi.org/simple' },
-		{ id: 'custom', name: '自定义 PyPI 源', url: '' }
+		{ id: 'auto', name: 'Auto (Recommended)', url: '' },
+		{ id: 'aliyun', name: 'Aliyun PyPI (China)', url: 'https://mirrors.aliyun.com/pypi/simple/' },
+		{ id: 'tsinghua', name: 'Tsinghua PyPI (China)', url: 'https://pypi.tuna.tsinghua.edu.cn/simple/' },
+		{ id: 'official', name: 'PyPI Official', url: 'https://pypi.org/simple' },
+		{ id: 'custom', name: 'Custom PyPI Source', url: '' }
 	];
 
 	const predefinedHFMirrors = [
-		{ id: 'auto', name: '自动选择（推荐）', url: '' },
-		{ id: 'hf-mirror', name: 'HF-Mirror 镜像 (中国加速)', url: 'https://hf-mirror.com' },
-		{ id: 'official', name: 'Hugging Face 官方', url: 'https://huggingface.co' },
-		{ id: 'custom', name: '自定义镜像源', url: '' }
+		{ id: 'auto', name: 'Auto (Recommended)', url: '' },
+		{ id: 'hf-mirror', name: 'HF-Mirror (China Acceleration)', url: 'https://hf-mirror.com' },
+		{ id: 'official', name: 'Hugging Face Official', url: 'https://huggingface.co' },
+		{ id: 'custom', name: 'Custom Mirror Source', url: '' }
 	];
 
 	const handleConfirm = () => {
 		const componentMirrors = customComponentMirrors.split('\n').filter((m) => m.trim());
 
-		// 获取选中的镜像 URL
+		// Get selected mirror URL
 		const componentMirrorUrl = componentMirrorSource === 'custom'
 			? null
 			: predefinedComponentMirrors.find(m => m.id === componentMirrorSource)?.url || null;
@@ -87,19 +87,19 @@
 
 {#if currentStep === 4 && selectedMode === 'local'}
 	<div class="mirror-config">
-		<h1>配置下载源</h1>
-		<p>选择用于下载组件和 Python 包的镜像源</p>
+		<h1>Configure Download Sources</h1>
+		<p>Select mirror sources for downloading components and Python packages</p>
 
 		<div class="config-form">
-			<!-- 组件镜像源配置 -->
+			<!-- Component mirror configuration -->
 			<div class="config-section">
 				<div class="section-header">
-					<h2>组件下载源</h2>
-					<span class="section-description">用于下载后端程序、模型等大型文件</span>
+					<h2>Component Download Source</h2>
+					<span class="section-description">For downloading backend, models and other large files</span>
 				</div>
 
 				<div class="form-group">
-					<label>镜像源</label>
+					<label>Mirror Source</label>
 					<select bind:value={componentMirrorSource}>
 						{#each predefinedComponentMirrors as mirror}
 							<option value={mirror.id}>{mirror.name}</option>
@@ -109,7 +109,7 @@
 
 				{#if componentMirrorSource === 'custom'}
 					<div class="form-group">
-						<label>自定义镜像源 URL（每行一个）</label>
+						<label>Custom Mirror Source URL (one per line)</label>
 						<textarea
 							bind:value={customComponentMirrors}
 							placeholder="https://mirror1.example.com&#10;https://mirror2.example.com"
@@ -119,15 +119,15 @@
 				{/if}
 			</div>
 
-			<!-- Python PyPI 镜像源配置 -->
+			<!-- Python PyPI mirror configuration -->
 			<div class="config-section">
 				<div class="section-header">
-					<h2>Python 包下载源</h2>
-					<span class="section-description">用于通过 pip 下载 Python 依赖包</span>
+					<h2>Python Package Download Source</h2>
+					<span class="section-description">For downloading Python dependency packages via pip</span>
 				</div>
 
 				<div class="form-group">
-					<label>PyPI 镜像源</label>
+					<label>PyPI Mirror Source</label>
 					<select bind:value={pypiMirrorSource}>
 						{#each predefinedPyPIMirrors as mirror}
 							<option value={mirror.id}>{mirror.name}</option>
@@ -137,27 +137,27 @@
 
 				{#if pypiMirrorSource === 'custom'}
 					<div class="form-group">
-						<label>自定义 PyPI 源 URL</label>
+						<label>Custom PyPI Source URL</label>
 						<input
 							type="text"
 							placeholder="https://pypi.example.com/simple/"
 							bind:value={customPyPIUrl}
 							class="text-input"
 						/>
-						<span class="input-hint">请输入完整的 PyPI simple index URL</span>
+						<span class="input-hint">Please enter full PyPI simple index URL</span>
 					</div>
 				{/if}
 			</div>
 
-			<!-- Hugging Face 镜像配置 -->
+			<!-- Hugging Face mirror configuration -->
 			<div class="config-section">
 				<div class="section-header">
-					<h2>Hugging Face 镜像</h2>
-					<span class="section-description">用于下载 AI 模型和数据集</span>
+					<h2>Hugging Face Mirror</h2>
+					<span class="section-description">For downloading AI models and datasets</span>
 				</div>
 
 				<div class="form-group">
-					<label>镜像源</label>
+					<label>Mirror Source</label>
 					<select bind:value={hfMirrorSource}>
 						{#each predefinedHFMirrors as mirror}
 							<option value={mirror.id}>{mirror.name}</option>
@@ -167,47 +167,47 @@
 
 				{#if hfMirrorSource === 'custom'}
 					<div class="form-group">
-						<label>自定义镜像源 URL</label>
+						<label>Custom Mirror Source URL</label>
 						<input
 							type="text"
 							placeholder="https://hf-mirror.com"
 							bind:value={customHFUrl}
 							class="text-input"
 						/>
-						<span class="input-hint">Hugging Face 镜像站点的完整 URL</span>
+						<span class="input-hint">Full URL of the Hugging Face Mirror site</span>
 					</div>
 				{/if}
 			</div>
 
-			<!-- 离线模式配置 -->
+			<!-- Offline mode configuration -->
 			<div class="config-section">
 				<div class="section-header">
-					<h2>离线模式</h2>
-					<span class="section-description">禁用所有在线功能，适合完全离线环境</span>
+					<h2>Offline mode</h2>
+					<span class="section-description">Disable all online features, suitable for completely offline environments</span>
 				</div>
 
 				<div class="form-group">
 					<label class="checkbox-label">
 						<input type="checkbox" bind:checked={offlineMode} />
-						<span>启用离线模式</span>
+						<span>Enable Offline Mode</span>
 					</label>
 					<span class="input-hint">
-						启用后将禁用版本检查、RAG 功能等需要联网的功能
+						When enabled, version checking, RAG and other features requiring internet will be disabled
 					</span>
 				</div>
 			</div>
 
-			<!-- 代理配置 -->
+			<!-- Proxy configuration -->
 			<div class="config-section">
 				<div class="section-header">
-					<h2>代理设置</h2>
-					<span class="section-description">如果网络环境需要代理，请在此配置</span>
+					<h2>Proxy Settings</h2>
+					<span class="section-description">Configure proxy if your network requires it</span>
 				</div>
 
 				<div class="form-group">
 					<label class="checkbox-label">
 						<input type="checkbox" bind:checked={enableProxy} />
-						<span>启用代理</span>
+						<span>Enable Proxy</span>
 					</label>
 					{#if enableProxy}
 						<input
@@ -222,8 +222,8 @@
 		</div>
 
 		<div class="actions">
-			<button class="btn-secondary" on:click={onBack}>上一步</button>
-			<button class="btn-primary" on:click={handleConfirm}>开始下载</button>
+			<button class="btn-secondary" on:click={onBack}>Previous</button>
+			<button class="btn-primary" on:click={handleConfirm}>Start Download</button>
 		</div>
 	</div>
 {/if}
@@ -240,7 +240,7 @@
 		flex-direction: column;
 	}
 
-	/* 自定义滚动条样式 */
+	/* Custom scrollbar style */
 	.mirror-config::-webkit-scrollbar {
 		width: 8px;
 	}

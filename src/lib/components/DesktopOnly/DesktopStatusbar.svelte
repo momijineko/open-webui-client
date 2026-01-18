@@ -35,18 +35,18 @@
 			} else {
 				await backendCommands.start();
 			}
-			// 延迟一下再检查状态，让后端有时间启动/停止
+			// Delay before checking status to allow backend time to start/stop
 			setTimeout(() => checkStatus(), 1000);
 		} catch (error) {
 			console.error('Failed to toggle backend:', error);
-			alert('操作失败：' + (error as Error).message);
+			alert('Operation failed: ' + (error as Error).message);
 		}
 	};
 
 	onMount(() => {
 		if (PLATFORM.isDesktop) {
 			checkStatus();
-			// 每 5 秒检查一次状态
+			// Check status every 5 seconds
 			const interval = setInterval(checkStatus, 5000);
 			return () => clearInterval(interval);
 		}
@@ -57,21 +57,21 @@
 	<div class="desktop-statusbar">
 		<div class="statusbar-content">
 			<div class="backend-status">
-				<span class="status-label">后端状态：</span>
+				<span class="status-label">Backend Status:</span>
 				{#if isLoading}
-					<span class="status-indicator loading">检查中...</span>
+					<span class="status-indicator loading">Checking...</span>
 				{:else if backendStatus?.is_running}
 					<span class="status-indicator running">
 						<span class="dot"></span>
-						运行中
+						Running
 						{#if backendStatus.port}
-							(端口: {backendStatus.port})
+							(Port: {backendStatus.port})
 						{/if}
 					</span>
 				{:else}
 					<span class="status-indicator stopped">
 						<span class="dot"></span>
-						已停止
+						Stopped
 					</span>
 				{/if}
 			</div>
@@ -81,7 +81,7 @@
 				on:click={toggleBackend}
 				disabled={isLoading || !backendStatus}
 			>
-				{backendStatus?.is_running ? '停止后端' : '启动后端'}
+				{backendStatus?.is_running ? 'Stop Backend' : 'Start Backend'}
 			</button>
 		</div>
 	</div>

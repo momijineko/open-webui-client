@@ -1,23 +1,23 @@
 import { browser, dev } from '$app/environment';
 // import { version } from '../../package.json';
 
-// Tauri 2.x 平台检测 - 使用更可靠的方法
+// Tauri 2.x platform detection - use more reliable method
 let isTauriDesktop = false;
 if (typeof window !== 'undefined') {
-	// 检查 __TAURI__ 或 __TAURI_INTERNALS__ 对象 (Tauri 2.x)
+	// Check for __TAURI__ or __TAURI_INTERNALS__ object (Tauri 2.x)
 	isTauriDesktop = !!(window as any).__TAURI__ || '__TAURI_INTERNALS__' in window;
 }
 
 export const APP_NAME = 'Open WebUI';
 
-// 平台检测
+// Platform detection
 export const PLATFORM = {
 	isDesktop: isTauriDesktop,
 	isMobile: typeof window !== 'undefined' && 'Capacitor' in window,
 	isWeb: typeof window !== 'undefined' && !isTauriDesktop && !('Capacitor' in window)
 };
 
-// 根据平台动态配置 URL
+// Configure URL dynamically based on platform
 export const WEBUI_HOSTNAME = browser
 	? (PLATFORM.isDesktop ? '127.0.0.1:8080' : (dev ? `${location.hostname}:8080` : ``))
 	: '';

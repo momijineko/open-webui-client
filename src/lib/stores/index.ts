@@ -24,7 +24,7 @@ export const WEBUI_DEPLOYMENT_ID = writable(null);
 export const config: Writable<Config | undefined> = writable(undefined);
 export const user: Writable<SessionUser | undefined> = writable(undefined);
 
-// Desktop/Mobile App - 检测是否在客户端环境中运行
+// Desktop/Mobile App - Detect if running in client environment
 export const isApp = writable(PLATFORM.isDesktop || PLATFORM.isMobile);
 export const isDesktop = writable(PLATFORM.isDesktop);
 export const isMobile = writable(PLATFORM.isMobile);
@@ -33,7 +33,7 @@ export const platform = writable(PLATFORM.isDesktop ? 'desktop' : PLATFORM.isMob
 export const appInfo = writable(null);
 export const appData = writable(null);
 
-// 客户端特定状态
+// Client-specific state
 export const instances = writable([]);
 export const currentInstance = writable(null);
 export const backendStatus = writable('stopped');

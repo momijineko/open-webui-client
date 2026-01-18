@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenWebUI Setup Wizard</title>
+    <title>OpenWebUI 安装向导</title>
     <style>
         * {
             margin: 0;
@@ -105,31 +105,31 @@
 </head>
 <body>
     <div class="setup-container">
-        <h1>Welcome to OpenWebUI</h1>
-        <p class="subtitle">Choose how you want to use OpenWebUI</p>
+        <h1>欢迎使用 OpenWebUI</h1>
+        <p class="subtitle">选择您想如何使用 OpenWebUI</p>
 
         <div class="mode-selection">
             <div class="mode-card" onclick="selectMode('local')">
                 <div class="icon">🖥️</div>
-                <h2>Local Mode</h2>
-                <p>Download and run OpenWebUI locally</p>
+                <h2>本地模式</h2>
+                <p>在本地下载并运行 OpenWebUI</p>
                 <ul>
-                    <li>Complete privacy - All data stays on your device</li>
-                    <li>No internet connection required after initial download</li>
-                    <li>Full access to all features including local models</li>
-                    <li>Requires approximately 500MB download</li>
+                    <li>完全隐私 - 所有数据保留在您的设备上</li>
+                    <li>初始下载后无需互联网连接</li>
+                    <li>完整访问所有功能包括本地模型</li>
+                    <li>需要约 500MB 下载</li>
                 </ul>
             </div>
 
             <div class="mode-card" onclick="selectMode('remote')">
                 <div class="icon">☁️</div>
-                <h2>Remote Mode</h2>
-                <p>Connect to an existing OpenWebUI server</p>
+                <h2>远程模式</h2>
+                <p>连接到现有的 OpenWebUI 服务器</p>
                 <ul>
-                    <li>No download required</li>
-                    <li>Connect to your own server or a public instance</li>
-                    <li>Share conversations across devices</li>
-                    <li>Requires network connection</li>
+                    <li>无需下载</li>
+                    <li>连接到您自己的服务器或公共实例</li>
+                    <li>跨设备共享对话</li>
+                    <li>需要网络连接</li>
                 </ul>
             </div>
         </div>
@@ -138,9 +138,9 @@
     <script>
         function selectMode(mode) {
             if (mode === 'local') {
-                alert('Local mode feature is under development...\n\nPlease configure the backend service first, then visit the main page.');
+                alert('本地模式功能开发中...\n\n请先配置好后端服务，然后访问主页面。');
             } else {
-                // Redirect to main page
+                // 跳转到主页
                 window.location.href = '/';
             }
         }

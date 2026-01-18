@@ -71,7 +71,7 @@ fn main() {
             // Start auto-update check in background
             updater::auto_check_updates(app.handle().clone());
 
-            // 应用启动时自动检查并更新后端
+            // Auto-check and update backend on app startup
             println!("App started, checking backend updates...");
             match backend::check_and_auto_update_backend() {
                 Ok(result) => {

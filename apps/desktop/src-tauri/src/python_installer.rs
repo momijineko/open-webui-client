@@ -4,7 +4,7 @@ use std::io::{Write, BufWriter};
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter};
 
-/// Python 安装进度
+/// Python installation progress
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PythonInstallProgress {
     pub current: u64,
@@ -15,7 +15,7 @@ pub struct PythonInstallProgress {
     pub stage: String, // "downloading", "extracting", "configuring"
 }
 
-/// Python 安装结果
+/// Python installation result
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PythonInstallResult {
     pub success: bool,
@@ -24,7 +24,7 @@ pub struct PythonInstallResult {
     pub message: String,
 }
 
-/// 获取 Python 数据目录
+/// Get Python data directory
 fn get_python_data_dir() -> Result<PathBuf, String> {
     let dirs = directories::UserDirs::new()
         .ok_or("Failed to get user directories".to_string())?;
@@ -35,16 +35,16 @@ fn get_python_data_dir() -> Result<PathBuf, String> {
     Ok(python_dir)
 }
 
-/// 获取平台特定的 Python 下载 URL 列表（使用完整 ZIP 包，自带 pip）
+/// Get platform-specific Python download URLs (use full ZIP package with pip)
 fn get_python_download_urls(version: &str) -> Vec<String> {
     let mut urls = Vec::new();
 
     #[cfg(target_os = "windows")]
     {
         if cfg!(target_arch = "x86_64") {
-            // 使用完整版 ZIP 包（非嵌入式版本）
-            // 完整版格式: python-3.11.9-amd64.zip（自带 pip）
-            // 嵌入式版本格式: python-3.11.9-embed-amd64.zip（无 pip）
+            // Use full ZIP package (non-embedded version)
+            // Full version format: python-3.11.9-amd64.zip (includes pip)
+            // Embedded version format: python-3.11.9-embed-amd64.zip (no pip)
             let full_tsinghua = format!(
                 "https://mirrors.tuna.tsinghua.edu.cn/python/{}/python-{}-amd64.zip",
                 version, version
@@ -90,12 +90,12 @@ fn get_python_download_urls(version: &str) -> Vec<String> {
     urls
 }
 
-/// 获取平台特定的 Python 下载 URL（保持向后兼容）
+/// Get platform-specific Python download URL (maintain backward compatibility)
 fn get_python_download_url(version: &str) -> String {
     get_python_download_urls(version).first().cloned().unwrap_or_default()
 }
 
-/// 下载文件并报告进度（带重试机制）
+/// Download file with progress reporting (retry mechanism)
 async fn download_file_with_progress(
     url: &str,
     destination: &PathBuf,
@@ -108,9 +108,9 @@ async fn download_file_with_progress(
 
     for retry in 0..max_retries {
         if retry > 0 {
-            eprintln!("重试下载 ({}/{}): {}", retry, max_retries, url);
+            eprintln!("Retrying download ({}/{}): {}", retry, max_retries, url);
             let _ = app_handle.emit("download-status", serde_json::json!({
-                "status": format!("重试下载 ({}/{})...", retry, max_retries),
+                "status": format!("Retrying download ({}/{})...", retry, max_retries),
                 "url": url
             }));
         }
@@ -118,16 +118,16 @@ async fn download_file_with_progress(
         match download_file_once(url, destination, app_handle, stage_name, proxy_url).await {
             Ok(()) => return Ok(()),
             Err(e) => {
-                eprintln!("下载失败 (尝试 {}/{}): {}", retry + 1, max_retries, e);
+                eprintln!("Download failed (attempt {}/{}): {}", retry + 1, max_retries, e);
                 last_error = e;
             }
         }
     }
 
-    Err(format!("下载失败，已重试 {} 次: {}", max_retries, last_error))
+    Err(format!("Download failed after {} retries: {}", max_retries, last_error))
 }
 
-/// 单次下载尝试
+/// Single download attempt
 async fn download_file_once(
     url: &str,
     destination: &PathBuf,
@@ -135,11 +135,11 @@ async fn download_file_once(
     stage_name: &str,
     proxy_url: Option<&str>,
 ) -> Result<(), String> {
-    eprintln!("开始下载: {} -> {:?}", url, destination);
+    eprintln!("Starting download: {} -> {:?}", url, destination);
 
-    // 创建 HTTP 客户端，支持代理和更长的超时时间
+    // Create HTTP client with proxy support and longer timeout
     let client_builder = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(600)) // 10分钟超时
+        .timeout(std::time::Duration::from_secs(600)) // 10 minute timeout
         .connect_timeout(std::time::Duration::from_secs(30));
 
     let client = if let Some(proxy) = proxy_url {
@@ -158,7 +158,7 @@ async fn download_file_once(
         .send()
         .await
         .map_err(|e| {
-            eprintln!("下载请求失败: {}", e);
+            eprintln!("Download request failed: {}", e);
             format!("Failed to fetch URL: {}", e)
         })?;
 
@@ -166,7 +166,7 @@ async fn download_file_once(
         return Err(format!("HTTP error: {}", response.status()));
     }
 
-    // content_length 可能为 None
+    // content_length may be None
     let total_size = response.content_length().unwrap_or(0);
 
     let mut downloaded = 0u64;
@@ -188,7 +188,7 @@ async fn download_file_once(
 
         downloaded += chunk.len() as u64;
 
-        // 计算下载速度
+        // Calculate download speed
         let elapsed = start_time.elapsed().as_secs_f64();
         let speed = if elapsed > 0.0 {
             (downloaded as f64 / elapsed) as u64
@@ -196,17 +196,17 @@ async fn download_file_once(
             0
         };
 
-        // 计算百分比（如果知道总大小）
+        // Calculate percentage (if total size is known)
         let percentage = if total_size > 0 {
             (downloaded as f64 / total_size as f64) * 100.0
         } else {
             0.0
         };
 
-        // 发送进度更新
+        // Send progress update
         let progress = PythonInstallProgress {
             current: downloaded,
-            total: total_size.max(1), // 避免除以零
+            total: total_size.max(1), // Avoid division by zero
             file: destination.file_name()
                 .and_then(|n| n.to_str())
                 .unwrap_or("download")
@@ -222,11 +222,11 @@ async fn download_file_once(
     writer.flush()
         .map_err(|e| format!("Failed to flush file: {}", e))?;
 
-    eprintln!("下载完成: {:?}", destination);
+    eprintln!("Download complete: {:?}", destination);
     Ok(())
 }
 
-/// 格式化下载速度
+/// Format download speed
 fn format_speed(bytes_per_sec: u64) -> String {
     if bytes_per_sec < 1024 {
         format!("{} B/s", bytes_per_sec)
@@ -237,7 +237,7 @@ fn format_speed(bytes_per_sec: u64) -> String {
     }
 }
 
-/// 解压 ZIP 文件
+/// Extract ZIP file
 fn extract_zip(zip_path: &PathBuf, dest_dir: &PathBuf) -> Result<(), String> {
     let file = File::open(zip_path)
         .map_err(|e| format!("Failed to open zip file: {}", e))?;
@@ -271,15 +271,15 @@ fn extract_zip(zip_path: &PathBuf, dest_dir: &PathBuf) -> Result<(), String> {
     Ok(())
 }
 
-/// 安装 pip 配置
+/// Pip installation configuration
 #[derive(Debug, Clone, Default)]
 pub struct PipInstallConfig {
     pub pypi_mirror: Option<String>,
     pub proxy_url: Option<String>,
 }
 
-// get-pip.py 脚本内容（内置，避免网络下载）
-// 修复版本：直接解压 wheel 到 site-packages，不依赖 pip 本身
+// get-pip.py script content (built-in, avoid network download)
+// Fixed version: directly extract wheel to site-packages, don't depend on pip itself
 const GET_PIP_SCRIPT: &str = r#"#!/usr/bin/env python3
 #
 # Fixed get-pip implementation for embedded Python
@@ -382,16 +382,16 @@ if __name__ == "__main__":
     sys.exit(main() or 0)
 "#;
 
-/// 安装 pip 到嵌入式 Python
+/// Install pip to embedded Python
 pub async fn install_pip(
     python_dir: &PathBuf,
     python_path: &str,
     _app_handle: &AppHandle,
     config: Option<&PipInstallConfig>,
 ) -> Result<(), String> {
-    eprintln!("尝试使用 ensurepip 安装 pip...");
+    eprintln!("Attempting to use ensurepip to install pip...");
 
-    // 首先尝试使用 ensurepip（如果可用）
+    // First try using ensurepip (if available)
     let ensurepip_output = std::process::Command::new(python_path)
         .args(["-m", "ensurepip", "--default-pip", "--upgrade"])
         .env("PYTHONPATH", python_dir.join("Lib").join("site-packages"))
@@ -399,37 +399,37 @@ pub async fn install_pip(
 
     if let Ok(output) = ensurepip_output {
         if output.status.success() {
-            eprintln!("ensurepip 安装成功");
+            eprintln!("ensurepip installation successful");
             let stdout = String::from_utf8_lossy(&output.stdout);
             eprintln!("ensurepip stdout: {}", stdout);
             return Ok(());
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            eprintln!("ensurepip 失败: {}", stderr);
+            eprintln!("ensurepip failed: {}", stderr);
         }
     }
 
-    // ensurepip 不可用，使用内置的 get-pip.py
-    eprintln!("ensurepip 不可用，使用内置的 get-pip.py...");
+    // ensurepip not available, use built-in get-pip.py
+    eprintln!("ensurepip not available, using built-in get-pip.py...");
 
     let get_pip_path = python_dir.join("get-pip.py");
 
-    // 写入内置的 get-pip.py 脚本
+    // Write built-in get-pip.py script
     fs::write(&get_pip_path, GET_PIP_SCRIPT)
         .map_err(|e| format!("Failed to write get-pip.py: {}", e))?;
 
-    eprintln!("get-pip.py 脚本已写入，尝试安装...");
+    eprintln!("get-pip.py script written, attempting installation...");
 
-    // 获取配置的 PyPI 镜像
+    // Get configured PyPI mirror
     let pypi_mirror_url = config.and_then(|cfg| cfg.pypi_mirror.as_ref());
 
     let mut cmd = std::process::Command::new(python_path);
     cmd.arg(&get_pip_path)
         .env("PYTHONPATH", python_dir.join("Lib").join("site-packages"));
 
-    // 如果配置了 PyPI 镜像，添加 index-url 参数
+    // If PyPI mirror configured, add index-url parameter
     if let Some(mirror) = &pypi_mirror_url {
-        eprintln!("使用 PyPI 镜像源安装 pip: {}", mirror);
+        eprintln!("Using PyPI mirror to install pip: {}", mirror);
         cmd.args(["--index-url", mirror]);
     }
 
@@ -445,35 +445,35 @@ pub async fn install_pip(
     }
 
     if output.status.success() {
-        eprintln!("pip 安装成功");
+        eprintln!("pip installation successful");
 
-        // 清理 get-pip.py
+        // Clean up get-pip.py
         let _ = fs::remove_file(&get_pip_path);
 
-        // 对于 Windows 嵌入式 Python，需要重新配置 .pth 文件
+        // For Windows embedded Python, need to reconfigure .pth file
         #[cfg(target_os = "windows")]
         {
-            eprintln!("重新配置 Python .pth 文件以启用 pip...");
+            eprintln!("Reconfiguring Python .pth file to enable pip...");
             if let Err(e) = configure_embedded_python(python_dir) {
-                eprintln!("警告: 配置 .pth 文件失败: {}", e);
+                eprintln!("Warning: Failed to configure .pth file: {}", e);
             }
 
-            // 额外措施：在 site-packages 中创建 pip.pth 文件
-            // 这样即使主 .pth 文件不生效，pip 也能被找到
+            // Extra measure: Create pip.pth file in site-packages
+            // This way pip can be found even if main .pth file doesn't work
             let site_packages = python_dir.join("Lib").join("site-packages");
             let pip_pth = site_packages.join("pip.pth");
 
-            // 创建一个指向 pip 包的 .pth 文件
-            // 这会告诉 Python 将 pip 目录添加到 sys.path
+            // Create a .pth file pointing to pip package
+            // This tells Python to add pip directory to sys.path
             let pip_pth_content = format!("import site; site.addsitedir(r'{}')", site_packages.to_string_lossy().replace('\\', "/"));
             if let Err(e) = fs::write(&pip_pth, pip_pth_content) {
-                eprintln!("警告: 创建 pip.pth 失败: {}", e);
+                eprintln!("Warning: Failed to create pip.pth: {}", e);
             } else {
-                eprintln!("已创建 pip.pth: {:?}", pip_pth);
+                eprintln!("Created pip.pth: {:?}", pip_pth);
             }
 
-            // 调试：列出 site-packages 目录内容
-            eprintln!("检查 site-packages 目录: {:?}", site_packages);
+            // Debug: List site-packages directory contents
+            eprintln!("Checking site-packages directory: {:?}", site_packages);
             if site_packages.exists() {
                 if let Ok(entries) = fs::read_dir(&site_packages) {
                     for entry in entries.flatten() {
@@ -481,24 +481,24 @@ pub async fn install_pip(
                     }
                 }
             } else {
-                eprintln!("site-packages 目录不存在！");
+                eprintln!("site-packages directory does not exist!");
             }
 
-            // 调试：读取 .pth 文件内容
+            // Debug: Read .pth file contents
             if let Ok(entries) = fs::read_dir(python_dir) {
                 for entry in entries.flatten() {
                     let path = entry.path();
                     if path.extension().and_then(|s| s.to_str()) == Some("pth") {
                         if let Ok(content) = fs::read_to_string(&path) {
-                            eprintln!(".pth 文件 {:?} 内容:\n{}", path, content);
+                            eprintln!(".pth file {:?} content:\n{}", path, content);
                         }
                     }
                 }
             }
         }
 
-        // 验证 pip 是否真的可用（使用 PYTHONPATH）
-        eprintln!("验证 pip 安装...");
+        // Verify pip is really available (using PYTHONPATH)
+        eprintln!("Verifying pip installation...");
         let site_packages = python_dir.join("Lib").join("site-packages");
         let site_packages_path = site_packages.to_string_lossy().replace('\\', "/");
 
@@ -515,37 +515,37 @@ pub async fn install_pip(
             Ok(output) => {
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                eprintln!("pip 验证 - stdout: {}, stderr: {}", stdout, stderr);
+                eprintln!("pip verification - stdout: {}, stderr: {}", stdout, stderr);
                 if !output.status.success() {
-                    eprintln!("警告: pip 模块无法导入");
+                    eprintln!("Warning: pip module cannot be imported");
                 }
             }
             Err(e) => {
-                eprintln!("pip 验证失败: {}", e);
+                eprintln!("pip verification failed: {}", e);
             }
         }
 
         Ok(())
     } else {
-        // 清理 get-pip.py
+        // Clean up get-pip.py
         let _ = fs::remove_file(&get_pip_path);
         Err(format!("get-pip.py failed:\nstdout: {}\nstderr: {}", stdout, stderr))
     }
 }
 
-/// 配置嵌入式 Python（Windows）
+/// Configure embedded Python (Windows)
 #[cfg(target_os = "windows")]
 fn configure_embedded_python(python_dir: &PathBuf) -> Result<(), String> {
     eprintln!("configure_embedded_python called with: {:?}", python_dir);
 
-    // 创建 site-packages 目录
+    // Create site-packages directory
     let site_packages = python_dir.join("Lib").join("site-packages");
     fs::create_dir_all(&site_packages)
         .map_err(|e| format!("Failed to create site-packages: {}", e))?;
 
-    eprintln!("site-packages 目录: {:?}", site_packages);
+    eprintln!("site-packages directory: {:?}", site_packages);
 
-    // 修改 python3xx._pth 文件以启用 site-packages
+    // Modify python3xx._pth file to enable site-packages
     let pth_files = fs::read_dir(python_dir)
         .map_err(|e| format!("Failed to read python dir: {}", e))?;
 
@@ -554,49 +554,49 @@ fn configure_embedded_python(python_dir: &PathBuf) -> Result<(), String> {
         let entry = entry.map_err(|e| format!("Failed to read dir entry: {}", e))?;
         let path = entry.path();
 
-        eprintln!("检查文件: {:?}", path);
+        eprintln!("Checking file: {:?}", path);
 
         if path.extension().and_then(|s| s.to_str()) == Some("pth") {
             found_pth = true;
             let content = fs::read_to_string(&path)
                 .map_err(|e| format!("Failed to read pth file: {}", e))?;
 
-            eprintln!("原始 .pth 文件内容:\n{}", content);
+            eprintln!("Original .pth file content:\n{}", content);
 
             let mut new_content = content.clone();
 
-            // 取消注释 import site（这会启用 site.py 模块）
+            // Uncomment import site (this enables site.py module)
             if content.contains("# import site") {
                 new_content = new_content.replace("# import site", "import site");
-                eprintln!("已启用 'import site'");
+                eprintln!("Enabled 'import site'");
             }
 
-            // 使用绝对路径添加 site-packages
-            // Windows .pth 文件需要正斜杠或双反斜杠
+            // Add site-packages using absolute path
+            // Windows .pth files need forward slash or double backslash
             let site_packages_str = site_packages.to_string_lossy().replace('\\', "/");
 
             if !content.contains("site-packages") && !content.contains(&site_packages_str) {
                 new_content = format!("{}\n{}\n", new_content.trim(), site_packages_str);
-                eprintln!("已添加 site-packages 路径: {}", site_packages_str);
+                eprintln!("Added site-packages path: {}", site_packages_str);
             }
 
-            eprintln!("新 .pth 文件内容:\n{}", new_content);
+            eprintln!("New .pth file content:\n{}", new_content);
 
             fs::write(&path, new_content)
                 .map_err(|e| format!("Failed to write pth file: {}", e))?;
 
-            eprintln!("已配置 .pth 文件: {:?}", path);
+            eprintln!("Configured .pth file: {:?}", path);
         }
     }
 
     if !found_pth {
-        eprintln!("警告: 未找到 .pth 文件!");
+        eprintln!("Warning: .pth file not found!");
     }
 
     Ok(())
 }
 
-/// 检查 Python 是否已安装
+/// Check if Python is installed
 pub fn check_python_installed(python_dir: &PathBuf) -> Option<String> {
     #[cfg(target_os = "windows")]
     let python_exe = python_dir.join("python.exe");
@@ -611,7 +611,7 @@ pub fn check_python_installed(python_dir: &PathBuf) -> Option<String> {
     }
 }
 
-/// 检查 pip 是否已安装
+/// Check if pip is installed
 pub fn check_pip_installed(python_path: &str) -> bool {
     let mut cmd = create_python_command_with_env(python_path);
     cmd.args(["-m", "pip", "--version"]);
@@ -623,13 +623,13 @@ pub fn check_pip_installed(python_path: &str) -> bool {
     }
 }
 
-/// 安装 Python（使用完整版 ZIP，自带 pip）
+/// Install Python (use full ZIP package with pip)
 #[tauri::command]
 pub async fn install_python(app_handle: AppHandle) -> Result<PythonInstallResult, String> {
-    eprintln!("开始安装 Python...");
+    eprintln!("Starting Python installation...");
 
     let python_dir = get_python_data_dir()?;
-    eprintln!("Python 数据目录: {:?}", python_dir);
+    eprintln!("Python data directory: {:?}", python_dir);
 
     #[cfg(target_os = "windows")]
     let runtime_dir = python_dir.join("runtime");
@@ -637,13 +637,13 @@ pub async fn install_python(app_handle: AppHandle) -> Result<PythonInstallResult
     #[cfg(not(target_os = "windows"))]
     let runtime_dir = python_dir.join("runtime");
 
-    // 检查是否已安装
+    // Check if already installed
     if let Some(python_path) = check_python_installed(&runtime_dir) {
-        eprintln!("Python 已安装: {:?}", python_path);
+        eprintln!("Python Already installed: {:?}", python_path);
 
-        // 完整版 Python 自带 pip，但验证一下
+        // Full Python comes with pip, but verify
         if !check_pip_installed(&python_path) {
-            eprintln!("警告: Python 已安装但 pip 不可用");
+            eprintln!("Warning: Python installed but pip not available");
         }
 
         return Ok(PythonInstallResult {
@@ -654,60 +654,60 @@ pub async fn install_python(app_handle: AppHandle) -> Result<PythonInstallResult
         });
     }
 
-    // 创建目录
+    // Create directory
     fs::create_dir_all(&python_dir)
         .map_err(|e| format!("Failed to create python directory: {}", e))?;
 
-    let python_version = "3.11.9"; // 使用稳定的 Python 版本
+    let python_version = "3.11.9"; // Use stable Python version
     let download_urls = get_python_download_urls(python_version);
 
-    eprintln!("下载 Python 从 {} 个镜像源", download_urls.len());
+    eprintln!("Downloading Python from {} mirror sources", download_urls.len());
 
-    // 下载路径
+    // Download path
     let zip_filename = format!("python-{}.zip", python_version);
     let zip_path = python_dir.join(&zip_filename);
 
-    // 尝试从多个镜像源下载
+    // Try downloading from multiple mirrors
     let mut download_success = false;
     let mut last_error = String::new();
 
     for (idx, download_url) in download_urls.iter().enumerate() {
-        eprintln!("尝试从镜像源 {}/{}: {}", idx + 1, download_urls.len(), download_url);
+        eprintln!("Attempting mirror {}/{}: {}", idx + 1, download_urls.len(), download_url);
 
-        // 发送开始下载事件
+        // Send start download event
         let _ = app_handle.emit("download-status", serde_json::json!({
-            "status": format!("下载 Python ({}/{})...", idx + 1, download_urls.len()),
+            "status": format!("Downloading Python ({}/{})...", idx + 1, download_urls.len()),
             "url": download_url
         }));
 
         match download_file_with_progress(download_url, &zip_path, &app_handle, "downloading", None).await {
             Ok(()) => {
-                eprintln!("下载成功: {}", download_url);
+                eprintln!("Download successful: {}", download_url);
                 download_success = true;
                 break;
             }
             Err(e) => {
-                eprintln!("从镜像源 {} 下载失败: {}", download_url, e);
+                eprintln!("Download from mirror {} failed: {}", download_url, e);
                 last_error = e;
-                // 删除部分下载的文件
+                // Delete partially downloaded file
                 let _ = fs::remove_file(&zip_path);
             }
         }
     }
 
     if !download_success {
-        return Err(format!("所有镜像源均失败。最后错误: {}", last_error));
+        return Err(format!("All mirrors failed. Last error: {}", last_error));
     }
 
-    eprintln!("下载完成，开始解压...");
+    eprintln!("Download complete, starting extraction...");
 
-    // 发送解压事件
+    // Send extraction event
     let _ = app_handle.emit("download-status", serde_json::json!({
-        "status": "解压中...",
+        "status": "Extracting...",
         "url": download_urls.first().unwrap_or(&String::new())
     }));
 
-    // 解压 Python
+    // Extract Python
     #[cfg(target_os = "windows")]
     let extract_dir = python_dir.join("runtime");
 
@@ -719,27 +719,27 @@ pub async fn install_python(app_handle: AppHandle) -> Result<PythonInstallResult
 
     extract_zip(&zip_path, &extract_dir)?;
 
-    eprintln!("解压完成");
+    eprintln!("Extraction complete");
 
-    // 清理下载的 zip 文件
+    // Clean up downloaded zip file
     let _ = fs::remove_file(&zip_path);
 
-    // 查找 Python 可执行文件
-    // 完整版 ZIP 解压后可能有不同的目录结构
+    // Find Python executable
+    // Full ZIP may have different directory structure
     let python_path = find_python_in_dir(&extract_dir)
         .ok_or("Python executable not found after installation".to_string())?;
 
-    eprintln!("Python 安装成功: {:?}", python_path);
+    eprintln!("Python installation successful: {:?}", python_path);
 
-    // 验证 pip 是否可用（完整版应该自带）
-    eprintln!("验证 pip 是否可用...");
+    // Verify pip is available (full version should have it)
+    eprintln!("Verifying pip availability...");
     if check_pip_installed(&python_path) {
-        eprintln!("pip 已就绪");
+        eprintln!("pip is ready");
     } else {
-        eprintln!("警告: pip 不可用，可能需要手动安装");
+        eprintln!("Warning: pip not available, may need manual installation");
     }
 
-    // 发送完成事件
+    // Send completion event
     let _ = app_handle.emit("download-complete", serde_json::json!({
         "python_path": python_path,
         "version": python_version
@@ -753,9 +753,9 @@ pub async fn install_python(app_handle: AppHandle) -> Result<PythonInstallResult
     })
 }
 
-/// 在目录中查找 Python 可执行文件
+/// Find Python executable in directory
 fn find_python_in_dir(dir: &PathBuf) -> Option<String> {
-    // 首先尝试直接在目录中查找
+    // First try to find directly in the directory
     #[cfg(target_os = "windows")]
     let direct_exe = dir.join("python.exe");
 
@@ -766,7 +766,7 @@ fn find_python_in_dir(dir: &PathBuf) -> Option<String> {
         return direct_exe.to_str().map(|s| s.to_string());
     }
 
-    // 尝试在子目录中查找（完整版 ZIP 可能有嵌套目录）
+    // Try to find in subdirectories (full ZIP may have nested directories)
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries.flatten() {
             let path = entry.path();
@@ -787,7 +787,7 @@ fn find_python_in_dir(dir: &PathBuf) -> Option<String> {
     None
 }
 
-/// 获取已安装的 Python 路径
+/// Get installed Python path
 #[tauri::command]
 pub fn get_installed_python() -> Result<Option<String>, String> {
     let python_dir = get_python_data_dir()?;
@@ -805,15 +805,15 @@ pub fn get_installed_python() -> Result<Option<String>, String> {
     }
 }
 
-/// 检查是否需要安装 Python
+/// Check if Python needs to be installed
 #[tauri::command]
 pub fn check_python_needed() -> Result<bool, String> {
-    // 首先检查系统 Python
+    // First check system Python
     if find_system_python().is_some() {
         return Ok(false);
     }
 
-    // 检查应用内 Python
+    // Check app-embedded Python
     let python_dir = get_python_data_dir()?;
 
     #[cfg(target_os = "windows")]
@@ -825,7 +825,7 @@ pub fn check_python_needed() -> Result<bool, String> {
     Ok(check_python_installed(&runtime_dir).is_none())
 }
 
-/// 查找系统 Python
+/// Find system Python
 fn find_system_python() -> Option<String> {
     let commands = ["python3", "python", "py"];
 
@@ -843,13 +843,13 @@ fn find_system_python() -> Option<String> {
     None
 }
 
-/// 为嵌入式 Python 创建带有正确环境变量的命令
-/// 完整版 Python 不需要特殊环境变量
+/// Create command with correct environment variables for embedded Python
+/// Full Python doesn't need special environment variables
 pub fn create_python_command_with_env(python_path: &str) -> std::process::Command {
     std::process::Command::new(python_path)
 }
 
-/// 获取 Python 的 site-packages 路径
+/// Get Python site-packages path
 pub fn get_site_packages_path(python_path: &str) -> Option<PathBuf> {
     if let Ok(python_path_buf) = std::path::PathBuf::from(python_path).canonicalize() {
         if let Some(python_dir) = python_path_buf.parent() {

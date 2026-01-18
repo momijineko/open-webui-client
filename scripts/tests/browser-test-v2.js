@@ -1,12 +1,12 @@
 /**
- * Tauri v2 自动化测试脚本 - 浏览器控制台版本
+ * Tauri v2 Automated Test Script - Browser Console Version
  *
- * 在 Tauri 窗口的开发者控制台中运行此脚本
+ * Run this script in the Tauri window developer console
  *
- * 使用方法:
- * 1. 在 Tauri 窗口中按 F12 打开开发者控制台
- * 2. 复制并粘贴以下代码
- * 3. 按回车执行
+ * Usage:
+ * 1. Press F12 in the Tauri window to open the developer console
+ * 2. Copy and paste the following code
+ * 3. Press Enter to execute
  */
 
 (async function runTauriTests() {
@@ -29,7 +29,7 @@
   function recordFail(name, error) {
     results.failed.push({ name, error });
     log.error(`${name}`);
-    log.result(`错误: ${error}`);
+    log.result(`Error: ${error}`);
   }
 
   function recordSkip(name, reason) {
@@ -38,87 +38,87 @@
   }
 
   log.header('='.repeat(60));
-  log.header('TAURI v2 自动化测试');
+  log.header('TAURI v2 AUTOMATED TEST');
   log.header('='.repeat(60));
 
-  // 检测 Tauri 环境
-  log.info('\n检测 Tauri 环境...');
+  // Detect Tauri environment
+  log.info('\nDetecting Tauri environment...');
   const hasTauri = typeof window !== 'undefined' && (
     '__TAURI__' in window || '__TAURI_INTERNALS__' in window
   );
 
   if (!hasTauri) {
-    recordFail('Tauri 环境', '未检测到 Tauri');
-    log.error('请在 Tauri 桌面应用中运行此测试！');
+    recordFail('Tauri Environment', 'Tauri not detected');
+    log.error('Please run this test in the Tauri desktop application!');
     return;
   }
-  recordPass('Tauri 环境', '已检测到');
+  recordPass('Tauri Environment', 'Detected');
 
-  // 尝试多种方式获取 invoke 函数
+  // Try multiple ways to get invoke function
   let invoke = null;
 
-  // 方法 1: 通过 __TAURI_INTERNALS__ (Tauri v2)
+  // Method 1: Through __TAURI_INTERNALS__ (Tauri v2)
   if (window.__TAURI_INTERNALS__) {
-    log.result('找到 __TAURI_INTERNALS__');
+    log.result('Found __TAURI_INTERNALS__');
     const internals = window.__TAURI_INTERNALS__;
 
-    // 尝试不同的路径
+    // Try different paths
     if (internals.core?.invoke) {
       invoke = internals.core.invoke;
-      log.result('使用: __TAURI_INTERNALS__.core.invoke');
+      log.result('Using: __TAURI_INTERNALS__.core.invoke');
     } else if (internals.invoke) {
       invoke = internals.invoke;
-      log.result('使用: __TAURI_INTERNALS__.invoke');
+      log.result('Using: __TAURI_INTERNALS__.invoke');
     } else if (internals.app?.invoke) {
       invoke = internals.app.invoke;
-      log.result('使用: __TAURI_INTERNALS__.app.invoke');
+      log.result('Using: __TAURI_INTERNALS__.app.invoke');
     }
   }
 
-  // 方法 2: 通过 __TAURI__ (Tauri v1/v2)
+  // Method 2: Through __TAURI__ (Tauri v1/v2)
   if (!invoke && window.__TAURI__) {
-    log.result('找到 __TAURI__');
+    log.result('Found __TAURI__');
     const tauri = window.__TAURI__;
 
     if (tauri.core?.invoke) {
       invoke = tauri.core.invoke;
-      log.result('使用: __TAURI__.core.invoke');
+      log.result('Using: __TAURI__.core.invoke');
     } else if (tauri.invoke) {
       invoke = tauri.invoke;
-      log.result('使用: __TAURI__.invoke');
+      log.result('Using: __TAURI__.invoke');
     } else if (tauri.tauri?.invoke) {
       invoke = tauri.tauri.invoke;
-      log.result('使用: __TAURI__.tauri.invoke');
+      log.result('Using: __TAURI__.tauri.invoke');
     }
   }
 
-  // 方法 3: 检查全局 invoke
+  // Method 3: Check global invoke
   if (!invoke && typeof window.invoke === 'function') {
     invoke = window.invoke;
-    log.result('使用: window.invoke');
+    log.result('Using: window.invoke');
   }
 
   if (!invoke) {
-    recordFail('invoke 函数', '无法获取 invoke 函数');
-    log.error('\n可用的全局对象:');
+    recordFail('invoke function', 'Cannot get invoke function');
+    log.error('\nAvailable global objects:');
     log.result('window.__TAURI__: ' + typeof window.__TAURI__);
     log.result('window.__TAURI_INTERNALS__: ' + typeof window.__TAURI_INTERNALS__);
 
-    // 尝试打印对象结构
+    // Try to print object structure
     if (window.__TAURI_INTERNALS__) {
-      log.result('\n__TAURI_INTERNALS__ 结构:');
+      log.result('\n__TAURI_INTERNALS__ structure:');
       console.dir(window.__TAURI_INTERNALS__);
     }
     if (window.__TAURI__) {
-      log.result('\n__TAURI__ 结构:');
+      log.result('\n__TAURI__ structure:');
       console.dir(window.__TAURI__);
     }
     return;
   }
 
-  recordPass('invoke 函数', '已获取');
+  recordPass('invoke function', 'Obtained');
 
-  // 测试调用函数
+  // Test invocation function
   async function test(cmd, args = {}) {
     try {
       const data = await invoke(cmd, args);
@@ -128,99 +128,99 @@
     }
   }
 
-  // 测试 1: 获取应用配置
-  log.info('\n测试 1: 获取应用配置...');
+  // Test 1: Get application config
+  log.info('\nTest 1: Get application config...');
   const cfg = await test('get_app_config');
   if (cfg.success) {
-    log.result(`配置: ${JSON.stringify(cfg.data, null, 2)}`);
-    recordPass('获取应用配置');
+    log.result(`Config: ${JSON.stringify(cfg.data, null, 2)}`);
+    recordPass('Get Application Config');
   } else {
-    recordFail('获取应用配置', cfg.error);
+    recordFail('Get Application Config', cfg.error);
   }
 
-  // 测试 2: 检查后端安装
-  log.info('\n测试 2: 检查后端安装...');
+  // Test 2: Check backend installation
+  log.info('\nTest 2: Check backend installation...');
   const inst = await test('check_backend_installation');
   if (inst.success) {
-    log.result(`安装状态: ${JSON.stringify(inst.data, null, 2)}`);
-    recordPass('检查后端安装');
+    log.result(`Installation Status: ${JSON.stringify(inst.data, null, 2)}`);
+    recordPass('Check Backend Installation');
   } else {
-    recordFail('检查后端安装', inst.error);
+    recordFail('Check Backend Installation', inst.error);
   }
 
-  // 测试 3: 检查后端状态
-  log.info('\n测试 3: 检查后端状态...');
+  // Test 3: Check backend status
+  log.info('\nTest 3: Check backend status...');
   const st = await test('check_backend_status');
   if (st.success) {
-    log.result(`运行状态: ${JSON.stringify(st.data, null, 2)}`);
-    recordPass('检查后端状态');
+    log.result(`Running Status: ${JSON.stringify(st.data, null, 2)}`);
+    recordPass('Check Backend Status');
   } else {
-    recordFail('检查后端状态', st.error);
+    recordFail('Check Backend Status', st.error);
   }
 
-  // 测试 4: 获取下载目录
-  log.info('\n测试 4: 获取下载目录...');
+  // Test 4: Get download directory
+  log.info('\nTest 4: Get download directory...');
   const dir = await test('get_download_dir_path');
   if (dir.success) {
-    log.result(`下载目录: ${dir.data}`);
-    recordPass('获取下载目录');
+    log.result(`Download Directory: ${dir.data}`);
+    recordPass('Get Download Directory');
   } else {
-    recordFail('获取下载目录', dir.error);
+    recordFail('Get Download Directory', dir.error);
   }
 
-  // 测试 5: 启动后端
-  log.info('\n测试 5: 启动后端...');
+  // Test 5: Start backend
+  log.info('\nTest 5: Start backend...');
   if (st.success && st.data.is_running) {
-    log.result('后端已在运行，跳过启动测试');
-    recordSkip('启动后端', '后端已在运行');
+    log.result('Backend is already running, skip start test');
+    recordSkip('Start Backend', 'Backend is already running');
   } else {
     const start = await test('start_backend');
     if (start.success) {
-      log.result(`启动结果: ${start.data}`);
-      log.info('等待 3 秒让后端启动...');
+      log.result(`Start Result: ${start.data}`);
+      log.info('Waiting 3 seconds for backend to start...');
       await new Promise(r => setTimeout(r, 3000));
       const st2 = await test('check_backend_status');
       if (st2.success && st2.data.is_running) {
-        log.result(`后端已启动，端口: ${st2.data.port}`);
-        recordPass('启动后端', `端口: ${st2.data.port}`);
+        log.result(`Backend started, port: ${st2.data.port}`);
+        recordPass('Start Backend', `Port: ${st2.data.port}`);
       } else {
-        recordFail('启动后端', '启动后状态检查失败');
+        recordFail('Start Backend', 'Status check failed after starting');
       }
     } else {
-      recordFail('启动后端', start.error);
+      recordFail('Start Backend', start.error);
     }
   }
 
-  // 测试 6: 获取实例列表
-  log.info('\n测试 6: 获取实例列表...');
+  // Test 6: Get instance list
+  log.info('\nTest 6: Get instance list...');
   const insts = await test('get_instances');
   if (insts.success) {
-    log.result(`实例列表: ${JSON.stringify(insts.data, null, 2)}`);
-    recordPass('获取实例列表');
+    log.result(`Instance List: ${JSON.stringify(insts.data, null, 2)}`);
+    recordPass('Get Instance List');
   } else {
-    recordFail('获取实例列表', insts.error);
+    recordFail('Get Instance List', insts.error);
   }
 
-  // 打印总结
+  // Print summary
   log.header('\n' + '='.repeat(60));
-  log.header('测试总结');
+  log.header('Test Summary');
   log.header('='.repeat(60));
-  console.log(`  %c通过: ${results.passed.length}`, 'color: #10b981; font-weight: bold');
-  console.log(`  %c失败: ${results.failed.length}`, 'color: #ef4444; font-weight: bold');
-  console.log(`  %c跳过: ${results.skipped.length}`, 'color: #f59e0b; font-weight: bold');
-  console.log(`  总计: ${results.passed.length + results.failed.length + results.skipped.length}\n`);
+  console.log(`  %cPassed: ${results.passed.length}`, 'color: #10b981; font-weight: bold');
+  console.log(`  %cFailed: ${results.failed.length}`, 'color: #ef4444; font-weight: bold');
+  console.log(`  %cSkipped: ${results.skipped.length}`, 'color: #f59e0b; font-weight: bold');
+  console.log(`  Total: ${results.passed.length + results.failed.length + results.skipped.length}\n`);
 
   if (results.failed.length > 0) {
-    log.error('失败的测试:');
+    log.error('Failed tests:');
     results.failed.forEach(f => console.log(`  - ${f.name}: ${f.error}`));
   }
 
   if (results.skipped.length > 0) {
-    log.warn('跳过的测试:');
+    log.warn('Skipped tests:');
     results.skipped.forEach(s => console.log(`  - ${s.name}: ${s.reason}`));
   }
 
-  log.info('\n测试完成！');
+  log.info('\nTest completed!');
 
   return results;
 })();

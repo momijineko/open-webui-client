@@ -13,7 +13,7 @@
 		MODE_SELECTION: 2,
 		ENVIRONMENT_CHECK: 3,
 		MIRROR_CONFIG: 4,
-		REMOTE_CONFIG: 4, // 远程模式配置（与本地模式复用步骤号）
+		REMOTE_CONFIG: 4, // Remote mode configuration (shares step number with local mode)
 		DOWNLOAD_COMPONENTS: 5,
 		INSTALLATION: 6,
 		COMPLETION: 7
@@ -41,7 +41,7 @@
 		username: undefined,
 		password: undefined
 	};
-	let installationStatus = '初始化中...';
+	let installationStatus = 'Initializing...';
 
 	const handleModeSelect = (mode: 'local' | 'remote') => {
 		selectedMode = mode;
@@ -53,31 +53,31 @@
 	};
 
 	const handleEnvironmentDetected = (status: any) => {
-		console.log('环境检测结果:', status);
+		console.log('Environment detection result:', status);
 
 		if (status.is_installed) {
-			// 已安装，直接跳到安装步骤启动后端
+			// Already installed, jump to installation step to start backend
 			currentStep = SetupStep.INSTALLATION;
 			handleDownloadComplete();
 		} else {
-			// 未安装，继续下载流程
+			// Not installed, continue download process
 			currentStep = SetupStep.MIRROR_CONFIG;
 		}
 	};
 
 	const handleUseExistingBackend = () => {
-		// 使用现有后端，直接跳到安装步骤
+		// Use existing backend, jump directly to installation step
 		currentStep = SetupStep.INSTALLATION;
 		handleDownloadComplete();
 	};
 
 	const handleSkipDetection = () => {
-		// 跳过检测，直接进入下载流程
+		// Skip detection, enter download process directly
 		currentStep = SetupStep.MIRROR_CONFIG;
 	};
 
 	const handleBackFromEnvironment = () => {
-		// 返回到模式选择页面
+		// Return to mode selection page
 		currentStep = SetupStep.MODE_SELECTION;
 	};
 
@@ -109,20 +109,20 @@
 
 	const handleDownloadComplete = async () => {
 		currentStep = SetupStep.INSTALLATION;
-		installationStatus = '正在启动后端服务...';
+		installationStatus = 'Starting backend service...';
 
 		try {
 			if (isTauriAvailable()) {
-				// 检查后端状态
+				// Check backend status
 				const status = await tauriCommands.backend.checkStatus();
 
 				if (status.is_running) {
-					installationStatus = '后端已在运行中';
+					installationStatus = 'Backend is already running';
 				} else {
-					// 启动后端，传入配置
-					installationStatus = '正在启动后端服务...';
+					// Start backend with configuration
+					installationStatus = 'Starting backend service...';
 
-					// 构建后端配置
+					// Build backend configuration
 					const backendConfig = {
 						hf_endpoint: config.hfMirror?.url || undefined,
 						offline_mode: config.offlineMode || undefined,
@@ -133,39 +133,39 @@
 					const result = await tauriCommands.backend.start(backendConfig);
 					console.log('Backend started:', result);
 
-					// 等待一下让后端完全启动
+					// Wait a moment for backend to fully start
 					await new Promise((resolve) => setTimeout(resolve, 2000));
 
-					// 再次检查状态
+					// Check status again
 					const newStatus = await tauriCommands.backend.checkStatus();
 					if (newStatus.is_running) {
-						installationStatus = '后端启动成功！';
+						installationStatus = 'Backend started successfully!';
 					} else {
-						installationStatus = '后端启动失败，请检查日志';
+						installationStatus = 'Backend startup failed, please check logs';
 					}
 				}
 
-				// 不再自动跳转到完成页面
+				// No longer auto-redirect to completion page
 			} else {
-				// 非 Tauri 环境的模拟流程
-				console.warn('Tauri 不可用，跳过后端启动');
-				installationStatus = '检测到 Web 环境，跳过后端启动';
+				// Simulated process for non-Tauri environment
+				console.warn('Tauri not available, skipping backend startup');
+				installationStatus = 'Web environment detected, skipping backend startup';
 			}
 		} catch (error) {
-			console.error('后端启动失败:', error);
-			installationStatus = '后端启动失败：' + (error as Error).message;
-			// 不再自动跳转，让用户留在安装页面查看状态
+			console.error('Backend startup failed:', error);
+			installationStatus = 'Backend startup failed: ' + (error as Error).message;
+			// No longer auto-redirect, let user stay on installation page to view status
 		}
 	};
 
-	// 安装完成后直接跳转到完成页面（后端已在 handleDownloadComplete 中启动）
+	// Jump to completion page after installation (backend already started in handleDownloadComplete)
 	const handleInstallationComplete = () => {
 		currentStep = SetupStep.COMPLETION;
 	};
 
 	const handleComplete = async () => {
 		try {
-			// 如果是远程模式，传递远程服务器配置
+			// If remote mode, pass remote server configuration
 			if (selectedMode === 'remote' && remoteServerConfig.url) {
 				const params: Record<string, string | null> = {
 					mode: 'remote',
@@ -174,7 +174,7 @@
 					remote_password: remoteServerConfig.password || null
 				};
 
-				// 直接使用 invoke 调用后端
+				// Use invoke to call backend directly
 				if (isTauriAvailable()) {
 					const { invoke } = await import('@tauri-apps/api/core');
 					await invoke('set_setup_completed', params);
@@ -186,7 +186,7 @@
 			console.error('[Setup] Failed to save configuration:', error);
 		}
 
-		// 跳转到主应用
+		// Redirect to main application
 		window.location.href = '/';
 	};
 </script>

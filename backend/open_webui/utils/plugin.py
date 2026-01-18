@@ -327,5 +327,5 @@ async def install_tool_and_function_dependencies_async():
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, install_tool_and_function_dependencies)
 
-    # 启动后台任务，不等待完成
+    # Start background task without waiting for completion
     asyncio.create_task(_install_in_thread())

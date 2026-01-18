@@ -624,7 +624,7 @@ async def lifespan(app: FastAPI):
 
     asyncio.create_task(periodic_usage_pool_cleanup())
 
-    # 在后台异步加载 RAG 模型，避免阻塞应用启动
+    # Load RAG models asynchronously in background to avoid blocking app startup
     asyncio.create_task(load_rag_models_async(app))
 
     if app.state.config.ENABLE_BASE_MODELS_CACHE:
@@ -1025,15 +1025,15 @@ app.state.rf = None
 app.state.YOUTUBE_LOADER_TRANSLATION = None
 
 
-# 延迟加载 RAG 模型的辅助函数
+# Helper function for lazy loading RAG models
 async def load_rag_models_async(app):
-    """在后台异步加载 RAG 模型，避免阻塞应用启动"""
+    """Load RAG models asynchronously in background to avoid blocking app startup"""
     import asyncio
 
     log.info("Starting background RAG model loading...")
 
     try:
-        # 在线程池中执行同步的模型加载操作
+        # Execute synchronous model loading in thread pool
         loop = asyncio.get_event_loop()
         ef = await loop.run_in_executor(
             None,
@@ -1064,7 +1064,7 @@ async def load_rag_models_async(app):
         else:
             app.state.rf = None
 
-        # 更新 embedding 和 reranking 函数
+        # Update embedding and reranking functions
         app.state.EMBEDDING_FUNCTION = get_embedding_function(
             app.state.config.RAG_EMBEDDING_ENGINE,
             app.state.config.RAG_EMBEDDING_MODEL,
@@ -1104,7 +1104,7 @@ async def load_rag_models_async(app):
         log.info("RAG models loaded and functions initialized")
     except Exception as e:
         log.error(f"Error loading RAG models in background: {e}")
-        # 保持默认值，不影响应用启动
+        # Keep default values, do not affect app startup
 
 ########################################
 #

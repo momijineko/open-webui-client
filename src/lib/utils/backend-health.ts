@@ -8,8 +8,8 @@
 import { isTauriAvailable } from './tauri';
 
 /**
- * 获取后端配置 URL 和认证信息
- * 支持本地和远程模式
+ * Get backend configuration URL and authentication credentials
+ * Supports both local and remote modes
  */
 async function getBackendConfig() {
 	const config = {
@@ -17,7 +17,7 @@ async function getBackendConfig() {
 		auth: undefined as { username: string; password: string } | undefined
 	};
 
-	// 检查是否配置了远程服务器
+	// Check if remote server is configured
 	if (typeof window !== 'undefined' && (window as any).REMOTE_BACKEND_URL) {
 		config.url = (window as any).REMOTE_BACKEND_URL;
 		config.auth = (window as any).REMOTE_BACKEND_AUTH;
@@ -41,7 +41,7 @@ async function getBackendConfig() {
 				}
 			}
 		} catch {
-			// 忽略错误，使用默认配置
+			// Ignore error, use default configuration
 		}
 	}
 
@@ -89,15 +89,15 @@ export async function checkBackendHealth(
 				console.log(`[Health Check] Attempt ${attempt}/${maxRetries}...`);
 			}
 
-			// 获取后端配置（支持远程模式）
+			// Get backend configuration (supports remote mode)
 			const backendConfig = await getBackendConfig();
 
-			// 构建请求头
+			// Build request headers
 			const headers: Record<string, string> = {
 				'Content-Type': 'application/json'
 			};
 
-			// 添加 Basic Auth（如果有）
+			// Add Basic Auth if available
 			if (backendConfig.auth) {
 				const credentials = btoa(`${backendConfig.auth.username}:${backendConfig.auth.password}`);
 				headers['Authorization'] = `Basic ${credentials}`;

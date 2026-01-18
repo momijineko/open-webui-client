@@ -67,5 +67,5 @@ const createBackendUrlStore = () => {
 
 export const backendUrlStore = createBackendUrlStore();
 
-// 导出一个 derived store 来获取当前的基础 URL
+// Export a derived store to get the current base URL
 export const backendBaseUrl = derived(backendUrlStore, ($state) => $state.url);

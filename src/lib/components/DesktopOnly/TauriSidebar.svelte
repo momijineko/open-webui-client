@@ -8,7 +8,7 @@
 
 	let selected = '';
 
-	// 根据当前路由设置选中状态
+	// Set selected state based on current route
 	$: if ($page.url.pathname === '/') {
 		selected = 'chat';
 	} else if ($page.url.pathname === '/setup') {
@@ -40,7 +40,7 @@
 
 	onMount(() => {
 		checkBackendStatus();
-		// 每 5 秒检查一次后端状态
+		// Check backend status every 5 seconds
 		const interval = setInterval(checkBackendStatus, 5000);
 		return () => clearInterval(interval);
 	});
@@ -56,7 +56,7 @@
 				</div>
 			{/if}
 
-			<Tooltip content="对话" placement="right">
+			<Tooltip content="Chat" placement="right">
 				<button
 					class="cursor-pointer {selected === 'home' || selected === 'chat' ? 'rounded-2xl' : 'rounded-full'}"
 					on:click={() => navigateTo('/')}
@@ -73,9 +73,9 @@
 
 		<div class="-mt-1 border-[1.5px] border-gray-100 dark:border-gray-900 mx-4"></div>
 
-		<!-- 后端状态 -->
+		<!-- Backend Status -->
 		<div class="flex justify-center relative group">
-			<Tooltip content={backendStatus.is_running ? '后端运行中' : '后端已停止'} placement="right">
+			<Tooltip content={backendStatus.is_running ? 'Backend Running' : 'Backend Stopped'} placement="right">
 				<button
 					class="cursor-pointer p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
 					on:click={checkBackendStatus}
@@ -91,7 +91,7 @@
 			</Tooltip>
 		</div>
 
-		<!-- 安装向导 -->
+		<!-- Setup Wizard -->
 		<div class="flex justify-center relative group">
 			{#if selected === 'setup'}
 				<div class="absolute top-0 left-0 flex h-full">
@@ -99,7 +99,7 @@
 				</div>
 			{/if}
 
-			<Tooltip content="安装向导" placement="right">
+			<Tooltip content="Setup Wizard" placement="right">
 				<button
 					class="cursor-pointer p-2 {selected === 'setup'
 						? 'rounded-2xl bg-gray-200 dark:bg-gray-800'
@@ -123,7 +123,7 @@
 			</Tooltip>
 		</div>
 
-		<!-- 测试页面（仅开发模式） -->
+		<!-- Test Page (Dev Mode Only) -->
 		{#if import.meta.env.DEV}
 			<div class="flex justify-center relative group">
 				{#if selected === 'test'}
@@ -132,7 +132,7 @@
 					</div>
 				{/if}
 
-				<Tooltip content="测试" placement="right">
+				<Tooltip content="Test" placement="right">
 					<button
 						class="cursor-pointer p-2 {selected === 'test'
 							? 'rounded-2xl bg-gray-200 dark:bg-gray-800'

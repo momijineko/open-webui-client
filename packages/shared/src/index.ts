@@ -1,5 +1,5 @@
 /**
- * 共享包入口
+ * Shared package entry point
  */
 
 export * from './constants/platforms';

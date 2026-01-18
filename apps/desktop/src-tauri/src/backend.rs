@@ -57,7 +57,7 @@ struct BackendProcess {
     _stderr_thread: Option<std::thread::JoinHandle<()>>,
 }
 
-// 查找可用端口
+// Find available port
 fn find_available_port(start_port: u16) -> Option<u16> {
     for port in start_port..65535 {
         if port_is_available(port) {
@@ -67,23 +67,23 @@ fn find_available_port(start_port: u16) -> Option<u16> {
     None
 }
 
-// 检查端口是否可用（简单检查）
+// Check if port is available (simple check)
 fn port_is_available(port: u16) -> bool {
-    // 在实际实现中，这里应该检查端口是否被占用
-    // 暂时返回 true，假设端口可用
+    // In actual implementation, this should check if port is in use
+    // For now, return true, assuming port is available
     port >= 1024 && port < 65535
 }
 
-// 查找 backend 目录
+// Find backend directory
 fn find_backend_directory() -> Option<PathBuf> {
-    // 辅助函数：规范化路径，避免 Windows 长路径前缀 \\?\
+    // Helper function: normalize path, avoid Windows long path prefix \\?\
     fn normalize_path(path: &PathBuf) -> PathBuf {
-        // 使用 std::fs::canonicalize 但去除 \\?\ 前缀
+        // Use std::fs::canonicalize but remove \\?\ prefix
         std::fs::canonicalize(path)
             .ok()
             .and_then(|p| {
                 let s = p.to_string_lossy().to_string();
-                // 去除 \\?\ 前缀（Windows 长路径前缀）
+                // Remove \\?\ prefix (Windows long path prefix)
                 if s.starts_with("\\\\?\\") {
                     Some(PathBuf::from(s[4..].to_string()))
                 } else {
@@ -93,7 +93,7 @@ fn find_backend_directory() -> Option<PathBuf> {
             .unwrap_or_else(|| path.clone())
     }
 
-    // 1. 优先检查用户数据目录（最高优先级，用户修改过的版本）
+    // 1. First check user data directory (highest priority, user-modified version)
     if let Some(dirs) = directories::UserDirs::new() {
         let home_dir = dirs.home_dir();
         let app_backend_dir = home_dir.join(".open-webui").join("backend");
@@ -104,10 +104,10 @@ fn find_backend_directory() -> Option<PathBuf> {
         }
     }
 
-    // 2. 开发环境：可执行文件旁边或向上查找
+    // 2. Development environment: next to executable or search upwards
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
-            // 检查旁边的 backend
+            // Check backend next to executable
             let backend_path = exe_dir.join("backend");
             if backend_path.exists() && backend_path.join("open_webui").exists() {
                 let normalized = normalize_path(&backend_path);
@@ -115,7 +115,7 @@ fn find_backend_directory() -> Option<PathBuf> {
                 return Some(normalized);
             }
 
-            // 向上查找
+            // Search upwards
             let mut search_dir = exe_dir;
             for _ in 0..6 {
                 if let Some(parent) = search_dir.parent() {
@@ -131,7 +131,7 @@ fn find_backend_directory() -> Option<PathBuf> {
         }
     }
 
-    // 3. 最后才检查打包的 resources（作为后备）
+    // 3. Finally check bundled resources (as fallback)
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
             let paths = vec![
@@ -150,7 +150,7 @@ fn find_backend_directory() -> Option<PathBuf> {
         }
     }
 
-    // 4. 当前工作目录
+    // 4. Current working directory
     if let Ok(current_dir) = std::env::current_dir() {
         let backend_path = current_dir.join("backend");
         if backend_path.exists() && backend_path.join("open_webui").exists() {
@@ -164,9 +164,9 @@ fn find_backend_directory() -> Option<PathBuf> {
     None
 }
 
-// 检查进程是否还在运行
+// Check if process is still running
 fn is_process_running(pid: u32) -> bool {
-    // 使用系统命令检查进程是否存在
+    // Use system command to check if process exists
     #[cfg(windows)]
     {
         match Command::new("tasklist")
@@ -193,29 +193,29 @@ fn is_process_running(pid: u32) -> bool {
 
 #[tauri::command]
 pub fn start_backend(state: State<BackendState>, config: Option<BackendConfig>) -> Result<String, String> {
-    // 先检查是否已有后端在运行
+    // First check if backend is already running
     let mut backend_guard = state.0.lock().unwrap();
 
     if let Some(backend) = backend_guard.as_ref() {
         if is_process_running(backend.pid) {
             return Ok(format!("Backend already running on port {}", backend.port));
         }
-        // 旧进程已停止，清理
+        // Old process stopped, clean up
         *backend_guard = None;
     }
 
-    // 查找可用端口
+    // Find available port
     let port = find_available_port(8080)
         .ok_or("No available port found".to_string())?;
 
-    // 构建后端命令
-    // 这里假设 Python 后端已经在系统中安装
-    // 在实际实现中，应该使用打包后的可执行文件路径
+    // Build backend command
+    // This assumes Python backend is already installed in system
+    // In actual implementation, should use packaged executable path
     let python_cmd = find_python_executable()?;
 
     println!("Starting backend with Python: {}", python_cmd);
 
-    // 查找 backend 目录并添加到 PYTHONPATH
+    // Find backend directory and add to PYTHONPATH
     let backend_dir = find_backend_directory();
     if let Some(ref dir) = backend_dir {
         println!("Found backend directory: {:?}", dir);
@@ -223,9 +223,9 @@ pub fn start_backend(state: State<BackendState>, config: Option<BackendConfig>) 
 
     let mut cmd = Command::new(&python_cmd);
 
-    // 设置 PYTHONPATH 环境变量
+    // Set PYTHONPATH environment variable
     if let Some(ref dir) = backend_dir {
-        // 获取当前的 PYTHONPATH（如果存在）
+        // Get current PYTHONPATH (if exists)
         let pythonpath = std::env::var("PYTHONPATH").unwrap_or_default();
         let new_pythonpath = if pythonpath.is_empty() {
             dir.to_string_lossy().to_string()
@@ -235,15 +235,15 @@ pub fn start_backend(state: State<BackendState>, config: Option<BackendConfig>) 
         cmd.env("PYTHONPATH", &new_pythonpath);
         println!("Set PYTHONPATH: {}", new_pythonpath);
 
-        // 应用配置：设置环境变量
+        // Apply configuration: set environment variables
         if let Some(ref cfg) = config {
-            // 设置 Hugging Face 镜像
+            // Set Hugging Face mirror
             if let Some(ref hf_endpoint) = cfg.hf_endpoint {
                 cmd.env("HF_ENDPOINT", hf_endpoint);
                 println!("Set HF_ENDPOINT: {}", hf_endpoint);
             }
 
-            // 设置离线模式
+            // Set offline mode
             if let Some(offline) = cfg.offline_mode {
                 if offline {
                     cmd.env("OFFLINE_MODE", "true");
@@ -252,16 +252,16 @@ pub fn start_backend(state: State<BackendState>, config: Option<BackendConfig>) 
                 }
             }
 
-            // 设置 PyPI 镜像（通过 PIP_INDEX_URL）
+            // Set PyPI mirror (via PIP_INDEX_URL)
             if let Some(ref pypi_mirror) = cfg.pypi_mirror {
                 cmd.env("PIP_INDEX_URL", pypi_mirror);
                 println!("Set PIP_INDEX_URL: {}", pypi_mirror);
             }
         }
 
-        // 使用 uvicorn 启动 FastAPI 应用
-        // 参考 start.sh 和 start_windows.bat 中的启动方式
-        // 注意：桌面应用不需要 --forwarded-allow-ips，且 * 可能被 shell 扩展导致问题
+        // Use uvicorn to start FastAPI application
+        // Reference start.sh and start_windows.bat for startup method
+        // Note: desktop app doesn't need --forwarded-allow-ips, and * may be expanded by shell
         cmd.args(["-m", "uvicorn", "open_webui.main:app"])
            .args(["--host", "0.0.0.0"])
            .args(["--port", &port.to_string()])
@@ -273,26 +273,26 @@ pub fn start_backend(state: State<BackendState>, config: Option<BackendConfig>) 
         return Err("Backend directory not found".to_string());
     }
 
-    // 启动进程
+    // Start process
     match cmd.spawn() {
         Ok(mut child) => {
             let pid = child.id();
 
-            // 获取 stdout 和 stderr 的读取器
+            // Get stdout and stderr readers
             let stdout = child.stdout.take().expect("Failed to get stdout");
             let stderr = child.stderr.take().expect("Failed to get stderr");
 
-            // 创建日志文件路径
+            // Create log file path
             let log_path = PathBuf::from("backend.log");
             let log_path_clone = log_path.clone();
 
-            // 启动线程读取 stdout
+            // Start thread to read stdout
             let stdout_thread = std::thread::spawn(move || {
                 let reader = std::io::BufReader::new(stdout);
                 for line in reader.lines() {
                     if let Ok(line) = line {
                         println!("[Backend STDOUT] {}", line);
-                        // 可选：写入日志文件
+                        // Optional: write to log file
                         if let Ok(mut file) = std::fs::OpenOptions::new()
                             .create(true)
                             .append(true)
@@ -305,14 +305,14 @@ pub fn start_backend(state: State<BackendState>, config: Option<BackendConfig>) 
                 }
             });
 
-            // 启动线程读取 stderr
+            // Start thread to read stderr
             let log_path_clone2 = log_path.clone();
             let stderr_thread = std::thread::spawn(move || {
                 let reader = std::io::BufReader::new(stderr);
                 for line in reader.lines() {
                     if let Ok(line) = line {
                         eprintln!("[Backend STDERR] {}", line);
-                        // 可选：写入日志文件
+                        // Optional: write to log file
                         if let Ok(mut file) = std::fs::OpenOptions::new()
                             .create(true)
                             .append(true)
@@ -325,7 +325,7 @@ pub fn start_backend(state: State<BackendState>, config: Option<BackendConfig>) 
                 }
             });
 
-            // 保存进程信息
+            // Save process information
             *backend_guard = Some(BackendProcess {
                 child,
                 pid,
@@ -350,11 +350,11 @@ pub fn stop_backend(state: State<BackendState>) -> Result<String, String> {
     let mut backend_guard = state.0.lock().unwrap();
 
     if let Some(mut backend) = backend_guard.take() {
-        // 尝试优雅地终止进程
+        // Try to gracefully terminate process
         if backend.child.try_wait().unwrap().is_some() {
-            // 进程已经停止
+            // Process already stopped
         } else {
-            // 发送终止信号
+            // Send termination signal
             #[cfg(unix)]
             {
                 let _ = Command::new("kill")
@@ -364,7 +364,7 @@ pub fn stop_backend(state: State<BackendState>) -> Result<String, String> {
 
             #[cfg(windows)]
             {
-                // Windows 下使用 taskkill 强制终止
+                // On Windows, use taskkill to force terminate
                 let _ = Command::new("taskkill")
                     .args(["/PID", &backend.pid.to_string(), "/F"])
                     .spawn();
@@ -382,10 +382,10 @@ pub fn check_backend_status(state: State<BackendState>) -> Result<BackendStatus,
     let mut backend_guard = state.0.lock().unwrap();
 
     if let Some(backend) = backend_guard.as_mut() {
-        // 首先尝试使用 Child handle 检查进程状态
+        // First try using Child handle to check process status
         match backend.child.try_wait() {
             Ok(Some(exit_status)) => {
-                // 进程已经退出
+                // Process has exited
                 println!("Backend process exited with status: {:?}", exit_status);
                 *backend_guard = None;
                 return Ok(BackendStatus {
@@ -395,7 +395,7 @@ pub fn check_backend_status(state: State<BackendState>) -> Result<BackendStatus,
                 });
             }
             Ok(None) => {
-                // 进程还在运行
+                // Process is still running
                 let port = backend.port;
                 let pid = backend.pid;
                 return Ok(BackendStatus {
@@ -405,7 +405,7 @@ pub fn check_backend_status(state: State<BackendState>) -> Result<BackendStatus,
                 });
             }
             Err(e) => {
-                // try_wait 失败，尝试使用系统命令检查
+                // try_wait failed, try using system command check
                 println!("try_wait failed: {}, falling back to system check", e);
                 let pid = backend.pid;
                 let port = backend.port;
@@ -441,7 +441,7 @@ pub fn get_backend_logs(state: State<BackendState>) -> Result<String, String> {
     let backend_guard = state.0.lock().unwrap();
 
     if let Some(backend) = backend_guard.as_ref() {
-        // 读取日志文件
+        // Read log file
         match std::fs::read_to_string(&backend.log_file) {
             Ok(logs) => Ok(logs),
             Err(_) => Ok("No logs available".to_string()),
@@ -451,20 +451,20 @@ pub fn get_backend_logs(state: State<BackendState>) -> Result<String, String> {
     }
 }
 
-// 查找 Python 可执行文件
+// Find Python executable
 fn find_python_executable() -> Result<String, String> {
-    // 首先检查应用内安装的 Python
+    // First check app-installed Python
     if let Ok(Some(python_path)) = crate::python_installer::get_installed_python() {
         return Ok(python_path);
     }
 
-    // 如果应用内没有，再尝试常见的 Python 命令
+    // If not found in app, try common Python commands
     let commands = ["python3", "python", "py"];
 
     for cmd in commands {
         if let Ok(output) = Command::new(cmd).arg("--version").output() {
             if output.status.success() {
-                // 检查版本是否 >= 3.10
+                // Check if version >= 3.10
                 let version_str = String::from_utf8_lossy(&output.stdout);
                 if version_str.contains("Python 3.") {
                     return Ok(cmd.to_string());
@@ -476,9 +476,9 @@ fn find_python_executable() -> Result<String, String> {
     Err("Python 3.10+ not found. Please install Python 3.10 or later.".to_string())
 }
 
-// 获取 Python 版本信息
+// Get Python version information
 fn get_python_version() -> Option<String> {
-    // 首先检查应用内安装的 Python
+    // First check app-installed Python
     if let Ok(Some(python_path)) = crate::python_installer::get_installed_python() {
         if let Ok(output) = Command::new(&python_path).arg("--version").output() {
             if output.status.success() {
@@ -490,7 +490,7 @@ fn get_python_version() -> Option<String> {
         }
     }
 
-    // 如果应用内没有，再尝试常见的 Python 命令
+    // If not found in app, try common Python commands
     let commands = ["python3", "python", "py"];
 
     for cmd in commands {
@@ -507,9 +507,9 @@ fn get_python_version() -> Option<String> {
     None
 }
 
-// 检查 OpenWebUI 是否已安装
+// Check if OpenWebUI is installed
 fn check_open_webui_installed() -> bool {
-    // 首先检查应用内安装的 Python
+    // First check app-installed Python
     if let Ok(Some(python_path)) = crate::python_installer::get_installed_python() {
         if let Ok(output) = Command::new(&python_path)
             .args(["-m", "pip", "list"])
@@ -524,7 +524,7 @@ fn check_open_webui_installed() -> bool {
         }
     }
 
-    // 如果应用内没有，再尝试常见的 Python 命令
+    // If not found in app, try common Python commands
     let commands = ["python3", "python", "py"];
 
     for cmd in commands {
@@ -544,9 +544,9 @@ fn check_open_webui_installed() -> bool {
     false
 }
 
-// 检查后端可执行文件
+// Check backend executable
 fn check_backend_executable() -> Option<String> {
-    // 检查应用数据目录中的后端可执行文件
+    // Check backend executable in app data directory
     if let Some(dirs) = directories::UserDirs::new() {
         let home_dir = dirs.home_dir();
         let app_dir = home_dir.join(".open-webui");
@@ -573,7 +573,7 @@ pub fn check_backend_installation() -> Result<BackendInstallationStatus, String>
     let backend_executable = check_backend_executable();
     let backend_dir = find_backend_directory();
 
-    // 检查安装路径
+    // Check installation path
     let installation_path = if let Some(exe) = &backend_executable {
         Some(std::path::Path::new(exe)
             .parent()
@@ -581,25 +581,25 @@ pub fn check_backend_installation() -> Result<BackendInstallationStatus, String>
             .unwrap_or("")
             .to_string())
     } else if let Some(ref dir) = backend_dir {
-        // 源码开发模式
+        // Source development mode
         Some(dir.to_string_lossy().to_string())
     } else if python_available && open_webui_installed {
-        // 如果通过 Python 安装，返回 Python 路径
+        // If installed via Python, return Python path
         find_python_executable().ok().map(|_| "Python environment".to_string())
     } else {
         None
     };
 
-    // 判断是否已安装
-    // 支持三种模式：
-    // 1. 独立可执行文件
-    // 2. Python 包安装
-    // 3. 源码开发目录 + Python 环境
+    // Determine if installed
+    // Support three modes:
+    // 1. Standalone executable
+    // 2. Python package installation
+    // 3. Source development directory + Python environment
     let is_installed = backend_executable.is_some()
         || (python_available && open_webui_installed)
         || (backend_dir.is_some() && python_available);
 
-    // 检测后端来源和版本
+    // Detect backend source and version
     let (backend_source, current_version, bundled_version, needs_update) =
         detect_backend_source_and_version(&backend_dir);
 
@@ -617,9 +617,9 @@ pub fn check_backend_installation() -> Result<BackendInstallationStatus, String>
     })
 }
 
-// 获取后端版本（从 version.txt 或 pyproject.toml）
+// Get backend version (from version.txt or pyproject.toml)
 fn get_backend_version(backend_dir: &PathBuf) -> Option<String> {
-    // 首先尝试读取 version.txt
+    // First try reading version.txt
     let version_file = backend_dir.join("version.txt");
     if version_file.exists() {
         if let Ok(content) = std::fs::read_to_string(&version_file) {
@@ -627,13 +627,13 @@ fn get_backend_version(backend_dir: &PathBuf) -> Option<String> {
         }
     }
 
-    // 尝试从 pyproject.toml 读取
+    // Try reading from pyproject.toml
     let pyproject = backend_dir.join("pyproject.toml");
     if pyproject.exists() {
         if let Ok(content) = std::fs::read_to_string(&pyproject) {
             for line in content.lines() {
                 if line.trim().starts_with("version =") {
-                    // 简单解析，实际可能需要更复杂的 TOML 解析
+                    // Simple parsing, actual implementation may need more complex TOML parsing
                     if let Some(v) = line.split('=').nth(1) {
                         return Some(v.trim().matches('"').collect::<String>());
                     }
@@ -645,7 +645,7 @@ fn get_backend_version(backend_dir: &PathBuf) -> Option<String> {
     None
 }
 
-// 检测后端来源和版本状态
+// Detect backend source and version status
 fn detect_backend_source_and_version(
     backend_dir: &Option<PathBuf>,
 ) -> (Option<String>, Option<String>, Option<String>, bool) {
@@ -655,7 +655,7 @@ fn detect_backend_source_and_version(
         None
     };
 
-    // 检查打包的后端版本
+    // Check bundled backend version
     let bundled_version = if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
             let resource_backend = exe_dir.join("resources").join("backend");
@@ -673,7 +673,7 @@ fn detect_backend_source_and_version(
 
     match backend_dir {
         Some(dir) => {
-            // 检查是否是用户数据目录
+            // Check if it's user data directory
             if let Some(ref user_dir) = user_backend_dir {
                 if dir.starts_with(user_dir) {
                     let current_version = get_backend_version(dir);
@@ -688,12 +688,12 @@ fn detect_backend_source_and_version(
                 }
             }
 
-            // 检查是否是开发目录（包含 .git）
+            // Check if it's development directory (contains .git)
             if dir.join(".git").exists() {
                 return (Some("development".to_string()), None, bundled_version, false);
             }
 
-            // 其他情况认为是打包的后端
+            // Otherwise consider it bundled backend
             let current_version = get_backend_version(dir);
             (Some("bundled".to_string()), current_version, bundled_version, false)
         }
@@ -701,7 +701,7 @@ fn detect_backend_source_and_version(
     }
 }
 
-// 获取用户数据目录的后端路径
+// Get user data directory backend path
 fn get_user_backend_dir() -> Option<PathBuf> {
     if let Some(dirs) = directories::UserDirs::new() {
         Some(dirs.home_dir().join(".open-webui").join("backend"))
@@ -710,13 +710,13 @@ fn get_user_backend_dir() -> Option<PathBuf> {
     }
 }
 
-// 初始化用户后端目录（从打包资源复制）
+// Initialize user backend directory (copy from bundled resources)
 #[tauri::command]
 pub fn initialize_user_backend() -> Result<String, String> {
     let user_backend_dir = get_user_backend_dir()
         .ok_or("Failed to get user data directory".to_string())?;
 
-    // 查找打包的后端资源
+    // Find bundled backend resources
     let bundled_backend = if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
             let resource_backend = exe_dir.join("resources").join("backend");
@@ -734,24 +734,24 @@ pub fn initialize_user_backend() -> Result<String, String> {
 
     let bundled_backend = bundled_backend.unwrap();
 
-    // 如果用户目录已存在，先备份
+    // If user directory exists, backup first
     if user_backend_dir.exists() {
         let backup_dir = format!("{}.backup.{}", user_backend_dir.display(), chrono::Utc::now().timestamp());
         return Err(format!("User backend already exists. Backup at {}", backup_dir));
     }
 
-    // 创建用户目录
+    // Create user directory
     std::fs::create_dir_all(&user_backend_dir)
         .map_err(|e| format!("Failed to create directory: {}", e))?;
 
-    // 复制后端文件
+    // Copy backend files
     copy_dir(&bundled_backend, &user_backend_dir)
         .map_err(|e| format!("Failed to copy backend: {}", e))?;
 
     Ok(format!("Backend initialized to {}", user_backend_dir.display()))
 }
 
-// 递归复制目录
+// Recursively copy directory
 fn copy_dir(from: &PathBuf, to: &PathBuf) -> std::io::Result<()> {
     if !to.exists() {
         std::fs::create_dir_all(to)?;
@@ -773,7 +773,7 @@ fn copy_dir(from: &PathBuf, to: &PathBuf) -> std::io::Result<()> {
     Ok(())
 }
 
-// 更新用户后端
+// Update user backend
 #[tauri::command]
 pub fn update_user_backend() -> Result<String, String> {
     let user_backend_dir = get_user_backend_dir()
@@ -783,7 +783,7 @@ pub fn update_user_backend() -> Result<String, String> {
         return initialize_user_backend();
     }
 
-    // 查找打包的后端资源
+    // Find bundled backend resources
     let bundled_backend = if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
             let resource_backend = exe_dir.join("resources").join("backend");
@@ -801,19 +801,19 @@ pub fn update_user_backend() -> Result<String, String> {
 
     let bundled_backend = bundled_backend.unwrap();
 
-    // 备份现有后端
+    // Backup existing backend
     let backup_dir = format!("{}.backup.{}", user_backend_dir.display(), chrono::Utc::now().timestamp());
     std::fs::rename(&user_backend_dir, &backup_dir)
         .map_err(|e| format!("Failed to backup existing backend: {}", e))?;
 
-    // 复制新版本
+    // Copy new version
     copy_dir(&bundled_backend, &user_backend_dir)
         .map_err(|e| format!("Failed to copy new backend: {}", e))?;
 
     Ok(format!("Backend updated. Backup at {}", backup_dir))
 }
 
-// 检查后端版本信息
+// Check backend version information
 #[tauri::command]
 pub fn get_backend_version_info() -> Result<BackendVersionInfo, String> {
     let backend_dir = find_backend_directory();
@@ -846,11 +846,11 @@ pub fn get_backend_version_info() -> Result<BackendVersionInfo, String> {
     })
 }
 
-// 安装后端依赖
+// Install backend dependencies
 fn install_backend_dependencies(backend_dir: &PathBuf) -> Result<(), String> {
     let python_cmd = find_python_executable()?;
 
-    // 检查 requirements.txt 是否存在
+    // Check if requirements.txt exists
     let requirements_file = backend_dir.join("requirements.txt");
     if !requirements_file.exists() {
         return Err("requirements.txt not found in backend directory".to_string());
@@ -858,7 +858,7 @@ fn install_backend_dependencies(backend_dir: &PathBuf) -> Result<(), String> {
 
     println!("Installing backend dependencies from: {:?}", requirements_file);
 
-    // 执行 pip install
+    // Execute pip install
     let output = Command::new(&python_cmd)
         .args(["-m", "pip", "install", "-r", requirements_file.to_str().unwrap()])
         .output()
@@ -873,7 +873,7 @@ fn install_backend_dependencies(backend_dir: &PathBuf) -> Result<(), String> {
     }
 }
 
-// 获取打包的后端版本
+// Get bundled backend version
 fn get_bundled_backend_version() -> Option<String> {
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
@@ -886,15 +886,15 @@ fn get_bundled_backend_version() -> Option<String> {
     None
 }
 
-// 检查并自动更新后端（应用启动时调用）
+// Check and auto-update backend (called on app startup)
 #[tauri::command]
 pub fn check_and_auto_update_backend() -> Result<AutoUpdateResult, String> {
     use crate::config::{load_config, save_config};
 
-    // 1. 加载配置
+    // 1. Load configuration
     let config = load_config()?;
 
-    // 2. 检查是否是本地模式
+    // 2. Check if local mode
     if config.setup_mode.as_deref() != Some("local") {
         return Ok(AutoUpdateResult {
             updated: false,
@@ -903,11 +903,11 @@ pub fn check_and_auto_update_backend() -> Result<AutoUpdateResult, String> {
         });
     }
 
-    // 3. 获取打包的后端版本
+    // 3. Get bundled backend version
     let bundled_version = get_bundled_backend_version()
         .ok_or("Bundled backend version not found".to_string())?;
 
-    // 4. 检查是否需要更新
+    // 4. Check if update needed
     let needs_update = config.backend_version.as_ref() != Some(&bundled_version);
 
     if !needs_update {
@@ -920,11 +920,11 @@ pub fn check_and_auto_update_backend() -> Result<AutoUpdateResult, String> {
 
     println!("Backend update needed: {:?} -> {}", config.backend_version, bundled_version);
 
-    // 5. 执行更新
+    // 5. Execute update
     let user_backend_dir = get_user_backend_dir()
         .ok_or("Failed to get user data directory".to_string())?;
 
-    // 查找打包的后端资源
+    // Find bundled backend resources
     let bundled_backend = if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
             let resource_backend = exe_dir.join("resources").join("backend");
@@ -942,26 +942,26 @@ pub fn check_and_auto_update_backend() -> Result<AutoUpdateResult, String> {
 
     let bundled_backend = bundled_backend.unwrap();
 
-    // 删除旧版本（如果存在）
+    // Remove old version (if exists)
     if user_backend_dir.exists() {
         std::fs::remove_dir_all(&user_backend_dir)
             .map_err(|e| format!("Failed to remove old backend: {}", e))?;
     }
 
-    // 创建用户目录
+    // Create user directory
     std::fs::create_dir_all(&user_backend_dir)
         .map_err(|e| format!("Failed to create directory: {}", e))?;
 
-    // 复制新版本
+    // Copy new version
     copy_dir(&bundled_backend, &user_backend_dir)
         .map_err(|e| format!("Failed to copy backend: {}", e))?;
 
     println!("Backend copied to: {:?}", user_backend_dir);
 
-    // 6. 安装依赖
+    // 6. Install dependencies
     install_backend_dependencies(&user_backend_dir)?;
 
-    // 7. 更新配置文件
+    // 7. Update configuration file
     let mut updated_config = config;
     updated_config.backend_version = Some(bundled_version.clone());
     save_config(&updated_config)?;

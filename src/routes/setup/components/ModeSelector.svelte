@@ -5,26 +5,26 @@
 	const modes = [
 		{
 			id: 'local',
-			title: '本地模式',
-			description: '在本地下载并运行 OpenWebUI',
+			title: 'Local Mode',
+			description: 'Download and run OpenWebUI locally',
 			icon: '🖥️',
 			features: [
-				'完全隐私 - 所有数据保留在您的设备上',
-				'初始下载后无需互联网连接',
-				'完整访问所有功能包括本地模型',
-				'需要约 500MB 下载'
+				'Complete privacy - All data stays on your device',
+				'No internet connection required after initial download',
+				'Full access to all features including local models',
+				'Requires ~500MB download'
 			]
 		},
 		{
 			id: 'remote',
-			title: '远程模式',
-			description: '连接到现有的 OpenWebUI 服务器',
+			title: 'Remote Mode',
+			description: 'Connect to existing OpenWebUI server',
 			icon: '☁️',
 			features: [
-				'无需下载',
-				'连接到您自己的服务器或公共实例',
-				'跨设备共享对话',
-				'需要网络连接'
+				'No download required',
+				'Connect to your own server or public instance',
+				'Share conversations across devices',
+				'Requires network connection'
 			]
 		}
 	];
@@ -32,8 +32,8 @@
 
 {#if currentStep === 2}
 	<div class="mode-selection">
-		<h1>欢迎使用 OpenWebUI</h1>
-		<p>选择您想如何使用 OpenWebUI</p>
+		<h1>Welcome to OpenWebUI</h1>
+		<p>Choose how you want to use OpenWebUI</p>
 
 		<div class="modes">
 			{#each modes as mode}

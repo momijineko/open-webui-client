@@ -803,7 +803,7 @@
 
 					if (appConfig.remote_url) {
 						try {
-							// 构建请求头，添加 Basic Auth
+							// Build request headers, add Basic Auth
 							const headers: Record<string, string> = {
 								'Content-Type': 'application/json'
 							};
@@ -813,7 +813,7 @@
 								headers['Authorization'] = `Basic ${credentials}`;
 							}
 
-							// 直接从远程服务器获取配置
+							// Fetch configuration directly from remote server
 							const remoteConfigUrl = appConfig.remote_url.replace(/\/$/, '') + '/api/config';
 							const response = await fetch(remoteConfigUrl, {
 								method: 'GET',
@@ -824,7 +824,7 @@
 								backendConfig = await response.json();
 								console.log('[Tauri] Remote backend config loaded successfully');
 
-								// 设置全局远程 URL store
+								// Set global remote URL store
 								if (typeof window !== 'undefined') {
 									(window as any).REMOTE_BACKEND_URL = appConfig.remote_url;
 									(window as any).REMOTE_BACKEND_AUTH = appConfig.remote_username
@@ -1073,7 +1073,7 @@
 
 {#if loaded}
 	{#if PLATFORM.isDesktop}
-		<!-- Tauri 侧边栏：桌面客户端专用 -->
+		<!-- Tauri Sidebar: Desktop Client Only -->
 		<div class="flex flex-row h-screen">
 			<TauriSidebar />
 
@@ -1083,8 +1083,8 @@
 					<div class="flex flex-col items-center justify-center h-full bg-white dark:bg-gray-900">
 						<div class="text-center space-y-4">
 							<div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-gray-100"></div>
-							<p class="text-gray-600 dark:text-gray-400">正在等待后端启动...</p>
-							<p class="text-sm text-gray-500 dark:text-gray-500">请稍候，这可能需要几秒钟</p>
+							<p class="text-gray-600 dark:text-gray-400">Waiting for backend to start...</p>
+							<p class="text-sm text-gray-500 dark:text-gray-500">Please wait, this may take a few seconds</p>
 						</div>
 					</div>
 				{:else}
@@ -1093,7 +1093,7 @@
 			</div>
 		</div>
 	{:else if $isApp}
-		<!-- Electron 侧边栏：仅在 Electron 应用中显示 -->
+		<!-- Electron Sidebar: Only shown in Electron app -->
 		<div class="flex flex-row h-screen">
 			<AppSidebar />
 

@@ -7,9 +7,9 @@
 	export let currentView = 'chat';
 
 	const views = [
-		{ id: 'chat', label: '对话', icon: '💬' },
-		{ id: 'instances', label: '实例管理', icon: '🔧', desktopOnly: true },
-		{ id: 'settings', label: '设置', icon: '⚙️' }
+		{ id: 'chat', label: 'Chat', icon: '💬' },
+		{ id: 'instances', label: 'Instances', icon: '🔧', desktopOnly: true },
+		{ id: 'settings', label: 'Settings', icon: '⚙️' }
 	];
 
 	const handleViewChange = (viewId: string) => {
@@ -24,7 +24,7 @@
 			<div class="nav-brand">
 				<span class="brand-icon">🤖</span>
 				<span class="brand-text">OpenWebUI</span>
-				<span class="brand-badge">桌面版</span>
+				<span class="brand-badge">Desktop</span>
 			</div>
 
 			<div class="nav-items">

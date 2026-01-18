@@ -1,5 +1,5 @@
 /**
- * OpenWebUI 实例类型定义
+ * OpenWebUI instance type definitions
  */
 
 export interface OpenWebUIInstance {
